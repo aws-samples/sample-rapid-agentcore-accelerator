@@ -1,0 +1,76 @@
+# ============================================================================
+# SAMPLE CODE - NOT FOR PRODUCTION USE
+# This is sample code intended for demonstration and prototyping purposes only.
+# It should be reviewed, tested, and validated before any production deployment.
+# ============================================================================
+
+# Deployment prefix — makes all resource names unique so the stack can be
+# deployed multiple times in the same account/region.
+# Lowercase letters, numbers, and hyphens. 1-20 characters.
+deploymentPrefix: rapid-v1
+
+# AWS region to deploy into. Bedrock model access must be enabled here.
+region: us-west-2
+
+# Default Bedrock model ID. Agents inherit this unless they set their own.
+# Omit to use the default: global.anthropic.claude-haiku-4-5-20251001-v1:0
+# modelId: global.anthropic.claude-haiku-4-5-20251001-v1:0
+
+# Image source. "local" builds Docker images from source on your machine.
+# "pipeline" pulls images from ECR, and is set for you by `make enable-cicd`.
+deploymentMode: local            # local | pipeline
+
+# Which frontend to deploy. Each non-"none" value provisions resources that
+# bill continuously whether or not anyone uses them:
+#
+#   none        No frontend. No VPC. Nothing bills while idle.
+#               Talk to your agent with `make chat`, or run the UI locally
+#               with `make ui`. This is the quickstart default.
+#   internal    VPC + 1 NAT gateway + internal ALB + Fargate service.
+#               Recurring cost: NAT gateway, ALB, Fargate task.
+#               No authentication — network reachability is the boundary.
+#   public      VPC + 1 NAT gateway + public ALB (HTTPS) + Fargate service
+#               + Cognito user pool + Route 53 record. Requires `domainName`.
+#               Recurring cost: NAT gateway, ALB, Fargate task.
+#   cloudfront  VPC + 1 NAT gateway + private ALB + Fargate service
+#               + CloudFront distribution + Cognito user pool.
+#               Recurring cost: NAT gateway, ALB, Fargate task, CloudFront.
+#               Note: Streamlit XSRF protection is disabled in this mode
+#               (see docs/frontend.md).
+#
+# See docs/cost-and-teardown.md before choosing a non-"none" value.
+frontendMode: none               # none | internal | public | cloudfront
+
+# Required when frontendMode is "public". Optional for "cloudfront", where it
+# enables a custom domain instead of the CloudFront distribution URL.
+domainName:                      # e.g. agent.example.com
+
+# Optional. Overrides the Route 53 hosted zone used for certificate validation
+# and alias records. By default this is derived from domainName by taking the
+# last two labels (agent.example.com -> example.com). Set it explicitly when
+# your hosted zone has three or more labels (e.g. eu.example.com).
+hostedZoneName:
+
+# Knowledge bases. Each gets an S3 bucket and a Bedrock Knowledge Base.
+# Documents in knowledge-bases/{name}/ are uploaded on deploy.
+# Agents reference a KB by name to get KNOWLEDGE_BASE_ID injected.
+knowledgeBases:
+  - name: support-docs           # sourceDir defaults to knowledge-bases/{name}
+  - name: it-docs
+
+# Agents. Required. Each entry gets its own AgentCore Runtime, cross-session
+# Memory, ECR repository, and (in pipeline mode) CI/CD pipeline.
+agents:
+  - name: customer-support       # sourceDir defaults to agent/{name}/src
+    modelId: global.anthropic.claude-haiku-4-5-20251001-v1:0
+    knowledgeBase: support-docs
+    mcpServers:
+      - support-tools
+  - name: it-helpdesk
+    modelId: global.anthropic.claude-haiku-4-5-20251001-v1:0
+    knowledgeBase: it-docs
+
+# MCP servers. Required. Each entry gets its own AgentCore Runtime, ECR
+# repository, and (in pipeline mode) CI/CD pipeline.
+mcpServers:
+  - name: support-tools          # sourceDir defaults to mcp/{name}/src

@@ -1,0 +1,82 @@
+# =============================================================================
+# Operating system artifacts — files created by macOS/Windows file browsers
+# =============================================================================
+**/.DS_Store
+Thumbs.db
+
+# =============================================================================
+# Editor and IDE state — machine-local, per-developer settings
+# =============================================================================
+.idea/
+.vscode/
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# =============================================================================
+# Python build, cache, and virtual-environment artifacts
+# =============================================================================
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# =============================================================================
+# Local environment files — may contain account IDs, ARNs, and credentials.
+# `.env.example` files are tracked as templates.
+# =============================================================================
+.env
+.env.*
+!.env.example
+**/local/.env
+
+# =============================================================================
+# Node.js / TypeScript build output (CDK infrastructure)
+# =============================================================================
+node_modules/
+*.js
+*.d.ts
+*.js.map
+!jest.config.js
+!cdk.json
+
+# =============================================================================
+# AWS CDK synth output and locally cached context lookups
+# =============================================================================
+cdk.out/
+.cdk.staging/
+cdk.context.json
+
+# =============================================================================
+# Generated deploy state and local agent scratch space
+# `.rapid/` holds deploy outputs written by `cdk deploy`; `.kiro/` and
+# `.acscratch/` hold local agent working files. None of these are tracked.
+# =============================================================================
+.rapid/
+.kiro/
+.acscratch/
+
+# =============================================================================
+# Docker artifacts and local compose overrides
+# =============================================================================
+*.tar
+docker-compose.override.yml
+
+# =============================================================================
+# Logs, temporary files, and backups
+# =============================================================================
+*.log
+*.tmp
+*.bak

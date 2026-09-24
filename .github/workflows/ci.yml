@@ -1,0 +1,49 @@
+# Pull-request validation for RAPID.
+#
+# The job does not configure AWS credentials and does not need them: `cdk synth`
+# runs against a config that performs no environment lookups, so synthesis
+# resolves without an account or region context.
+#
+# Python 3.12 and uv are required for agent and MCP server work, but this job
+# does not build an agent image, so neither is installed here.
+name: CI
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  # Node 22 is the current LTS line and matches the `@types/node` 22.x pin in
+  # `infra/package.json`. The documented minimum for consumers is Node 18; CI
+  # runs the version the repository is developed against.
+  NODE_VERSION: '22'
+
+jobs:
+  cdk:
+    name: CDK synth and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: infra/package-lock.json
+
+      - name: Install infrastructure dependencies
+        run: npm ci
+        working-directory: infra
+
+      - name: Synthesize the CloudFormation template
+        run: npx cdk synth
+        working-directory: infra
+
+      - name: Run the CDK unit tests
+        run: npm test
+        working-directory: infra

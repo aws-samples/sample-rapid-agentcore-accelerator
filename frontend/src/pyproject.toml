@@ -1,0 +1,18 @@
+[project]
+name = "streamlit-frontend"
+version = "0.1.0"
+description = "Streamlit frontend for AgentCore Runtime with ALB + Cognito authentication"
+requires-python = ">=3.12"
+dependencies = [
+    "streamlit==1.54.0",
+    "requests==2.33.0",
+    "PyJWT[crypto]==2.13.0",
+    "boto3==1.42.14",
+    "python-dotenv==1.2.1",
+    "httpx==0.28.1",
+    "httpx-sse==0.4.3",
+    "numpy==2.4.6",
+]
+
+[dependency-groups]
+dev = []

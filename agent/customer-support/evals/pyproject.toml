@@ -1,0 +1,12 @@
+[project]
+name = "agent-evals"
+version = "0.1.0"
+description = "Evaluation tests for the customer support agent"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "boto3==1.43.36",
+    "requests==2.33.0",
+    "strands-agents==1.44.0",
+    "strands-agents-evals==1.0.1",
+]

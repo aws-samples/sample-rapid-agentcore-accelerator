@@ -1,0 +1,33 @@
+{
+  "name": "rapid-agentic-prototyping",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AWS CDK infrastructure for RAPID. Synthesizes one stack from the repository-root config.yaml.",
+  "license": "Apache-2.0",
+  "bin": {
+    "agentcore-deployment": "app.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@types/jest": "29.5.14",
+    "@types/js-yaml": "4.0.9",
+    "@types/node": "22.7.9",
+    "aws-cdk": "2.1126.0",
+    "fast-check": "4.9.0",
+    "jest": "29.7.0",
+    "ts-jest": "29.4.5",
+    "ts-node": "10.9.2",
+    "typescript": "5.6.3"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.258.0",
+    "cdk-nag": "2.38.2",
+    "constructs": "10.6.0",
+    "js-yaml": "4.2.0"
+  }
+}

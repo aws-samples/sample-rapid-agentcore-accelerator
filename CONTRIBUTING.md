@@ -1,59 +1,64 @@
-# Contributing Guidelines
+# Contributing to RAPID
 
-Thank you for your interest in contributing to our project. Whether it's a bug report, new feature, correction, or additional
-documentation, we greatly value feedback and contributions from our community.
+Thanks for your interest in contributing. Issues, feature requests and pull requests are all welcome. Please read this document before you open one, so your contribution can be reviewed and merged with as little back-and-forth as possible.
 
-Please read through this document before submitting any issues or pull requests to ensure we have all the necessary
-information to effectively respond to your bug report or contribution.
+RAPID is a prototyping blueprint, not production software. Contributions that keep it simple, fast to deploy and easy to read are preferred over contributions that add production hardening, abstraction layers or configuration surface. See [AGENTS.md](AGENTS.md) for the conventions the repository follows.
 
+## Reporting bugs and requesting features
 
-## Reporting Bugs/Feature Requests
+Use the GitHub Issues tab of this repository for both. Before opening a new issue, please:
 
-We welcome you to use the GitHub issue tracker to report bugs or suggest features.
+- Search open and recently closed issues to check that it has not already been reported.
+- Confirm you are on the latest `main`.
 
-When filing an issue, please check existing open, or recently closed, issues to make sure somebody else hasn't already
-reported the issue. Please try to include as much information as you can. Details like these are incredibly useful:
+A useful bug report includes:
 
-* A reproducible test case or series of steps
-* The version of our code being used
-* Any modifications you've made relevant to the bug
-* Anything unusual about your environment or deployment
+- A reproducible test case or series of steps, starting from a clean clone.
+- The version of the repository you are using (commit SHA).
+- Your environment: operating system, host architecture, Node.js version, Python version, AWS region.
+- The relevant `config.yaml` values, with account IDs and domain names redacted.
+- What you expected to happen, what happened instead, and the log output that shows it.
 
+Do **not** open a public issue for a security vulnerability. See [Security issues](#security-issues) below.
 
-## Contributing via Pull Requests
-Contributions via pull requests are much appreciated. Before sending us a pull request, please ensure that:
+## Contributing via pull requests
 
-1. You are working against the latest source on the *main* branch.
-2. You check existing open, and recently merged, pull requests to make sure someone else hasn't addressed the problem already.
-3. You open an issue to discuss any significant work - we would hate for your time to be wasted.
+Before you invest significant time, open an issue to discuss the change. That avoids the case where a large pull request is declined because it takes the project in a direction the maintainers do not want to go.
 
-To send us a pull request, please:
+To send us a pull request:
 
 1. Fork the repository.
-2. Modify the source; please focus on the specific change you are contributing. If you also reformat all the code, it will be hard for us to focus on your change.
-3. Ensure local tests pass.
-4. Commit to your fork using clear commit messages.
-5. Send us a pull request, answering any default questions in the pull request interface.
-6. Pay attention to any automated CI failures reported in the pull request, and stay involved in the conversation.
+2. Create a branch from `main`. Do not work on `main` directly.
+3. Make your change. Keep the change focused on one concern — a pull request that fixes a bug and reformats three unrelated files is hard to review.
+4. Update the documentation that your change affects. Every fact in this repository has exactly one authoritative file; change it there rather than adding a second copy.
+5. Run the local verification commands below and make sure they pass.
+6. Commit using clear, descriptive messages.
+7. Open the pull request against `main`, filling in the pull-request template. State what you verified.
+8. Respond to review feedback and to any automated check that fails.
 
-GitHub provides additional document on [forking a repository](https://help.github.com/articles/fork-a-repo/) and
-[creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
+GitHub's [forking a repository](https://help.github.com/articles/fork-a-repo/) and [creating a pull request](https://help.github.com/articles/creating-a-pull-request/) guides cover the mechanics.
 
+### Local verification
 
-## Finding contributions to work on
-Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any 'help wanted' issues is a great place to start.
+Run this from the repository root before you open a pull request. The same check runs on every pull request in CI, so running it locally is the fastest way to get a green build.
 
+```bash
+# Infrastructure: template synthesis and CDK unit tests
+cd infra && npx cdk synth && npm test
+```
 
-## Code of Conduct
-This project has adopted the [Amazon Open Source Code of Conduct](https://aws.github.io/code-of-conduct).
-For more information see the [Code of Conduct FAQ](https://aws.github.io/code-of-conduct-faq) or contact
-opensource-codeofconduct@amazon.com with any additional questions or comments.
+If your change touches an agent, an MCP server or the frontend, also exercise it locally — see [GETTING_STARTED.md](GETTING_STARTED.md) for the local development loop.
 
+## Code of conduct
 
-## Security issue notifications
-If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
+This project has adopted a code of conduct. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). By participating, you are expected to uphold it.
 
+## Security issues
+
+If you discover a potential security issue, please report it through the [AWS vulnerability reporting page](https://aws.amazon.com/security/vulnerability-reporting/). Do not create a public GitHub issue.
 
 ## Licensing
 
-See the [LICENSE](LICENSE) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
+This project is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+By submitting a contribution, you agree that your contribution is licensed under the Apache License, Version 2.0, and you confirm that you have the right to submit it under those terms. We may ask you to confirm the licensing of your contribution on larger changes.

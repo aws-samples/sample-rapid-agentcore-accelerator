@@ -1,0 +1,12 @@
+[project]
+name = "it-helpdesk-agent"
+version = "0.1.0"
+description = "IT helpdesk agent with AgentCore Runtime + Memory"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "strands-agents==1.44.0",
+    "bedrock-agentcore[strands-agents]==1.6.1",
+    "boto3==1.43.36",
+    "mcp-proxy-for-aws==1.6.2",
+]

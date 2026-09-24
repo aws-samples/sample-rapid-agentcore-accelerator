@@ -1,0 +1,47 @@
+# Docker build context exclusions for the Streamlit frontend image.
+#
+# StreamlitFrontend builds this directory with ecs.ContainerImage.fromAsset,
+# which is the same DockerImageAsset machinery the agent and MCP runtimes use.
+# CDK appends every line here to the asset `exclude` list, so anything excluded
+# below is also kept out of the asset fingerprint — which is what makes the
+# synthesized template reproducible across machines.
+#
+# This asset is only created when frontendMode is not "none".
+#
+# Do NOT exclude anything the Dockerfile copies: pyproject.toml, uv.lock,
+# app.py, core/, chatui/.
+
+# Local virtualenvs. The image builds its own .venv in the builder stage.
+.venv/
+**/.venv/
+
+# Python bytecode and interpreter caches
+__pycache__/
+**/__pycache__/
+*.py[cod]
+**/*.py[cod]
+
+# Local toolchain pin — the image pins Python via its base image
+.python-version
+
+# Test, lint, and type-check caches
+.pytest_cache/
+**/.pytest_cache/
+.ruff_cache/
+**/.ruff_cache/
+.mypy_cache/
+**/.mypy_cache/
+
+# Packaging metadata
+*.egg-info/
+**/*.egg-info/
+
+# Local secrets. .env.example is documentation and stays in the context.
+.env
+**/.env
+!.env.example
+!**/.env.example
+
+# OS cruft
+.DS_Store
+**/.DS_Store

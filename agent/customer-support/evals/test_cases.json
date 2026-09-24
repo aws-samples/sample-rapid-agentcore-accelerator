@@ -1,0 +1,82 @@
+{
+  "cases": [
+    {
+      "name": "order-lookup",
+      "session_id": "35806eac-ec2d-4cae-9e8a-7f1f25432514",
+      "input": "Can you check the status of my order ORD-12345?",
+      "expected_output": "shipped",
+      "expected_trajectory": null,
+      "expected_interactions": null,
+      "metadata": {
+        "category": "order_status",
+        "tool": "lookup_order"
+      }
+    },
+    {
+      "name": "order-not-found",
+      "session_id": "395412b2-a714-485c-8f00-3f227c9ebf40",
+      "input": "What's the status of order ORD-99999?",
+      "expected_output": "not found",
+      "expected_trajectory": null,
+      "expected_interactions": null,
+      "metadata": {
+        "category": "order_status",
+        "tool": "lookup_order"
+      }
+    },
+    {
+      "name": "product-info",
+      "session_id": "e588d129-9de7-4115-9f00-3602682519f0",
+      "input": "Can you tell me about product WH-1000?",
+      "expected_output": "Wireless Headphones",
+      "expected_trajectory": null,
+      "expected_interactions": null,
+      "metadata": {
+        "category": "product_info",
+        "tool": "get_product_info"
+      }
+    },
+    {
+      "name": "product-availability",
+      "session_id": "a3b00840-f866-41d4-9845-4c37c77296fa",
+      "input": "Is the laptop stand LS-3000 in stock?",
+      "expected_output": "Out of Stock",
+      "expected_trajectory": null,
+      "expected_interactions": null,
+      "metadata": {
+        "category": "product_info",
+        "tool": "get_product_info"
+      }
+    },
+    {
+      "name": "create-ticket",
+      "session_id": "29bb3f85-dc13-4a6f-97e9-7e63a96c7075",
+      "input": "I need to report a problem with my order. My email is customer@example.com and my headphones arrived damaged.",
+      "expected_output": null,
+      "expected_trajectory": null,
+      "expected_interactions": null,
+      "metadata": {
+        "category": "support_ticket",
+        "tool": "create_support_ticket"
+      }
+    },
+    {
+      "name": "general-help",
+      "session_id": "eb023d0b-a88b-4ff4-85a1-364563e458e8",
+      "input": "Hi, I need help with a recent purchase.",
+      "expected_output": "Gather more information",
+      "expected_trajectory": null,
+      "expected_interactions": null,
+      "metadata": {
+        "category": "greeting"
+      }
+    }
+  ],
+  "evaluators": [
+    {
+      "evaluator_type": "OutputEvaluator",
+      "rubric": "\n    Evaluate the customer support agent's response based on:\n    1. Tool Usage - Did the agent use the appropriate tool (lookup_order, get_product_info, create_support_ticket), or no tool if not needed?\n    2. Accuracy - Is the information from the tool correctly conveyed?\n    3. Helpfulness - Does the response address the customer's needs?\n    4. Tone - Is the response friendly and professional?\n\n    Score 1.0 if all criteria are met excellently.\n    Score 0.7 if most criteria are met well.\n    Score 0.5 if some criteria are partially met.\n    Score 0.0 if the response is inadequate, incorrect, or unhelpful.\n    ",
+      "model": "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    }
+  ]
+}

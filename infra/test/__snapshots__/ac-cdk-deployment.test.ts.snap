@@ -1,0 +1,1700 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AgentCoreStack snapshot matches for default local/none config 1`] = `
+{
+  "Outputs": {
+    "AgentRuntimeArn": {
+      "Description": "AgentCore Runtime ARN",
+      "Value": {
+        "Fn::GetAtt": [
+          "TestprefixAgentRuntime67CF7F52",
+          "AgentRuntimeArn",
+        ],
+      },
+    },
+    "AgentRuntimeId": {
+      "Description": "AgentCore Runtime ID",
+      "Value": {
+        "Fn::GetAtt": [
+          "TestprefixAgentRuntime67CF7F52",
+          "AgentRuntimeId",
+        ],
+      },
+    },
+    "DocumentsBucketName": {
+      "Description": "S3 Bucket for Knowledge Base documents",
+      "Value": {
+        "Ref": "TestKbDocumentsBucket146E7D9A",
+      },
+    },
+    "McpEcrRepositoryUri": {
+      "Description": "ECR Repository URI for MCP server images",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            {
+              "Fn::Select": [
+                4,
+                {
+                  "Fn::Split": [
+                    ":",
+                    {
+                      "Fn::GetAtt": [
+                        "TestprefixMcpEcrRepositoryBD6D51A3",
+                        "Arn",
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            ".dkr.ecr.",
+            {
+              "Fn::Select": [
+                3,
+                {
+                  "Fn::Split": [
+                    ":",
+                    {
+                      "Fn::GetAtt": [
+                        "TestprefixMcpEcrRepositoryBD6D51A3",
+                        "Arn",
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            ".",
+            {
+              "Ref": "AWS::URLSuffix",
+            },
+            "/",
+            {
+              "Ref": "TestprefixMcpEcrRepositoryBD6D51A3",
+            },
+          ],
+        ],
+      },
+    },
+    "McpServerRuntimeArn": {
+      "Description": "MCP Server Runtime ARN",
+      "Value": {
+        "Fn::GetAtt": [
+          "TestprefixMcpServerRuntimeBE38ED50",
+          "AgentRuntimeArn",
+        ],
+      },
+    },
+    "McpServerRuntimeId": {
+      "Description": "MCP Server Runtime ID",
+      "Value": {
+        "Fn::GetAtt": [
+          "TestprefixMcpServerRuntimeBE38ED50",
+          "AgentRuntimeId",
+        ],
+      },
+    },
+    "TestKbDocumentsBucketName": {
+      "Description": "Documents bucket: test-kb",
+      "Value": {
+        "Ref": "TestKbDocumentsBucket146E7D9A",
+      },
+    },
+    "TestKbKnowledgeBaseId": {
+      "Description": "Knowledge Base ID: test-kb",
+      "Value": {
+        "Fn::GetAtt": [
+          "TestKbKnowledgeBase0D86AB90",
+          "KnowledgeBaseId",
+        ],
+      },
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "AccessLogsBucket83982689": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "AccessControl": "LogDeliveryWrite",
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256",
+              },
+            },
+          ],
+        },
+        "BucketName": {
+          "Fn::Join": [
+            "",
+            [
+              "testprefix-access-logs-",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              "-",
+              {
+                "Ref": "AWS::Region",
+              },
+            ],
+          ],
+        },
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "ExpirationInDays": 90,
+              "Status": "Enabled",
+            },
+          ],
+        },
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "ObjectWriter",
+            },
+          ],
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true,
+        },
+        "Tags": [
+          {
+            "Key": "aws-cdk:auto-delete-objects",
+            "Value": "true",
+          },
+        ],
+      },
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "AccessLogsBucketAutoDeleteObjectsCustomResource93F9213A": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "AccessLogsBucketPolicy7F77476F",
+      ],
+      "Properties": {
+        "BucketName": {
+          "Ref": "AccessLogsBucket83982689",
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::S3AutoDeleteObjects",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "AccessLogsBucketPolicy7F77476F": {
+      "Properties": {
+        "Bucket": {
+          "Ref": "AccessLogsBucket83982689",
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:*",
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false",
+                },
+              },
+              "Effect": "Deny",
+              "Principal": {
+                "AWS": "*",
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "AccessLogsBucket83982689",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "AccessLogsBucket83982689",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "s3:PutBucketPolicy",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::GetAtt": [
+                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+                    "Arn",
+                  ],
+                },
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "AccessLogsBucket83982689",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "AccessLogsBucket83982689",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::S3::BucketPolicy",
+    },
+    "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F": {
+      "DependsOn": [
+        "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-west-2",
+          "S3Key": "faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6.zip",
+        },
+        "Description": {
+          "Fn::Join": [
+            "",
+            [
+              "Lambda function for auto-deleting objects in ",
+              {
+                "Ref": "AccessLogsBucket83982689",
+              },
+              " S3 bucket.",
+            ],
+          ],
+        },
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs22.x",
+        "Timeout": 900,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Sub": "arn:\${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "TestKbDocumentsBucket146E7D9A": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256",
+              },
+            },
+          ],
+        },
+        "BucketName": {
+          "Fn::Join": [
+            "",
+            [
+              "testprefix-kb-test-kb-",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              "-",
+              {
+                "Ref": "AWS::Region",
+              },
+            ],
+          ],
+        },
+        "LoggingConfiguration": {
+          "DestinationBucketName": {
+            "Ref": "AccessLogsBucket83982689",
+          },
+          "LogFilePrefix": "kb-test-kb/",
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true,
+        },
+        "Tags": [
+          {
+            "Key": "aws-cdk:auto-delete-objects",
+            "Value": "true",
+          },
+        ],
+      },
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "TestKbDocumentsBucketAutoDeleteObjectsCustomResource1D45B53C": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "TestKbDocumentsBucketPolicy761B59FE",
+      ],
+      "Properties": {
+        "BucketName": {
+          "Ref": "TestKbDocumentsBucket146E7D9A",
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::S3AutoDeleteObjects",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "TestKbDocumentsBucketPolicy761B59FE": {
+      "Properties": {
+        "Bucket": {
+          "Ref": "TestKbDocumentsBucket146E7D9A",
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:*",
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false",
+                },
+              },
+              "Effect": "Deny",
+              "Principal": {
+                "AWS": "*",
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "TestKbDocumentsBucket146E7D9A",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "TestKbDocumentsBucket146E7D9A",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "s3:PutBucketPolicy",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::GetAtt": [
+                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+                    "Arn",
+                  ],
+                },
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "TestKbDocumentsBucket146E7D9A",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "TestKbDocumentsBucket146E7D9A",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::S3::BucketPolicy",
+    },
+    "TestKbKnowledgeBase0D86AB90": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "TestKbDocumentsBucketAutoDeleteObjectsCustomResource1D45B53C",
+        "TestKbDocumentsBucketPolicy761B59FE",
+        "TestKbDocumentsBucket146E7D9A",
+        "TestKbKnowledgeBaseKnowledgeBasePolicyAFA07E87",
+        "TestKbKnowledgeBaseVectorIndex498D8F68",
+      ],
+      "Properties": {
+        "Description": "Knowledge base: test-kb",
+        "KnowledgeBaseConfiguration": {
+          "Type": "VECTOR",
+          "VectorKnowledgeBaseConfiguration": {
+            "EmbeddingModelArn": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:aws:bedrock:",
+                  {
+                    "Ref": "AWS::Region",
+                  },
+                  "::foundation-model/amazon.titan-embed-text-v2:0",
+                ],
+              ],
+            },
+            "SupplementalDataStorageConfiguration": {
+              "SupplementalDataStorageLocations": [
+                {
+                  "S3Location": {
+                    "URI": {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "s3://",
+                          {
+                            "Ref": "TestKbSupplementalBucketE9AD4060",
+                          },
+                          "/",
+                        ],
+                      ],
+                    },
+                  },
+                  "SupplementalDataStorageLocationType": "S3",
+                },
+              ],
+            },
+          },
+        },
+        "Name": "testprefix-kb-test-kb",
+        "RoleArn": {
+          "Fn::GetAtt": [
+            "TestKbKnowledgeBaseKnowledgeBaseRoleD8A1441D",
+            "Arn",
+          ],
+        },
+        "StorageConfiguration": {
+          "S3VectorsConfiguration": {
+            "IndexArn": {
+              "Fn::GetAtt": [
+                "TestKbKnowledgeBaseVectorIndex498D8F68",
+                "IndexArn",
+              ],
+            },
+            "VectorBucketArn": {
+              "Fn::GetAtt": [
+                "TestKbKnowledgeBaseVectorBucketCB92C392",
+                "VectorBucketArn",
+              ],
+            },
+          },
+          "Type": "S3_VECTORS",
+        },
+      },
+      "Type": "AWS::Bedrock::KnowledgeBase",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "TestKbKnowledgeBaseDataSource0548A38E8": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "TestKbKnowledgeBase0D86AB90",
+      ],
+      "Properties": {
+        "DataDeletionPolicy": "DELETE",
+        "DataSourceConfiguration": {
+          "S3Configuration": {
+            "BucketArn": {
+              "Fn::GetAtt": [
+                "TestKbDocumentsBucket146E7D9A",
+                "Arn",
+              ],
+            },
+            "InclusionPrefixes": [
+              "kb-source-docs/",
+            ],
+          },
+          "Type": "S3",
+        },
+        "KnowledgeBaseId": {
+          "Fn::GetAtt": [
+            "TestKbKnowledgeBase0D86AB90",
+            "KnowledgeBaseId",
+          ],
+        },
+        "Name": "managed-ingestion",
+        "VectorIngestionConfiguration": {
+          "ChunkingConfiguration": {
+            "ChunkingStrategy": "HIERARCHICAL",
+            "HierarchicalChunkingConfiguration": {
+              "LevelConfigurations": [
+                {
+                  "MaxTokens": 1500,
+                },
+                {
+                  "MaxTokens": 300,
+                },
+              ],
+              "OverlapTokens": 60,
+            },
+          },
+        },
+      },
+      "Type": "AWS::Bedrock::DataSource",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "TestKbKnowledgeBaseKnowledgeBasePolicyAFA07E87": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "bedrock:InvokeModel",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:bedrock:",
+                    {
+                      "Ref": "AWS::Region",
+                    },
+                    "::foundation-model/amazon.titan-embed-text-v2:0",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": [
+                "s3vectors:GetIndex",
+                "s3vectors:QueryVectors",
+                "s3vectors:PutVectors",
+                "s3vectors:GetVectors",
+                "s3vectors:DeleteVectors",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "TestKbKnowledgeBaseVectorIndex498D8F68",
+                    "IndexArn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "TestKbKnowledgeBaseVectorIndex498D8F68",
+                          "IndexArn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "bedrock:InvokeDataAutomationAsync",
+                "bedrock:GetDataAutomationStatus",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "TestKbKnowledgeBaseKnowledgeBasePolicyAFA07E87",
+        "Roles": [
+          {
+            "Ref": "TestKbKnowledgeBaseKnowledgeBaseRoleD8A1441D",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "TestKbKnowledgeBaseKnowledgeBaseRoleD8A1441D": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "bedrock.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Description": "Service role for Bedrock Knowledge Base testprefix-kb-test-kb",
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "TestKbKnowledgeBaseKnowledgeBaseRoleDefaultPolicyB1FD5CEB": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:GetObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+                "s3:PutObject",
+                "s3:PutObjectLegalHold",
+                "s3:PutObjectRetention",
+                "s3:PutObjectTagging",
+                "s3:PutObjectVersionTagging",
+                "s3:Abort*",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "TestKbSupplementalBucketE9AD4060",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "TestKbSupplementalBucketE9AD4060",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "s3:GetObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "TestKbDocumentsBucket146E7D9A",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "TestKbDocumentsBucket146E7D9A",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "TestKbKnowledgeBaseKnowledgeBaseRoleDefaultPolicyB1FD5CEB",
+        "Roles": [
+          {
+            "Ref": "TestKbKnowledgeBaseKnowledgeBaseRoleD8A1441D",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "TestKbKnowledgeBaseVectorBucketCB92C392": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "VectorBucketName": "kb-vectors-02b55432",
+      },
+      "Type": "AWS::S3Vectors::VectorBucket",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "TestKbKnowledgeBaseVectorIndex498D8F68": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "TestKbKnowledgeBaseVectorBucketCB92C392",
+      ],
+      "Properties": {
+        "DataType": "float32",
+        "Dimension": 1024,
+        "DistanceMetric": "cosine",
+        "IndexName": "kb-index-02b55432",
+        "MetadataConfiguration": {
+          "NonFilterableMetadataKeys": [
+            "AMAZON_BEDROCK_TEXT",
+            "AMAZON_BEDROCK_METADATA",
+          ],
+        },
+        "VectorBucketArn": {
+          "Fn::GetAtt": [
+            "TestKbKnowledgeBaseVectorBucketCB92C392",
+            "VectorBucketArn",
+          ],
+        },
+      },
+      "Type": "AWS::S3Vectors::Index",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "TestKbSupplementalBucketAutoDeleteObjectsCustomResource1B7B31EF": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "TestKbSupplementalBucketPolicy49EB0A01",
+      ],
+      "Properties": {
+        "BucketName": {
+          "Ref": "TestKbSupplementalBucketE9AD4060",
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::S3AutoDeleteObjects",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "TestKbSupplementalBucketE9AD4060": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256",
+              },
+            },
+          ],
+        },
+        "BucketName": {
+          "Fn::Join": [
+            "",
+            [
+              "testprefix-kb-test-kb-supplemental-",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              "-",
+              {
+                "Ref": "AWS::Region",
+              },
+            ],
+          ],
+        },
+        "LoggingConfiguration": {
+          "DestinationBucketName": {
+            "Ref": "AccessLogsBucket83982689",
+          },
+          "LogFilePrefix": "kb-test-kb-supplemental/",
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true,
+        },
+        "Tags": [
+          {
+            "Key": "aws-cdk:auto-delete-objects",
+            "Value": "true",
+          },
+        ],
+      },
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "TestKbSupplementalBucketPolicy49EB0A01": {
+      "Properties": {
+        "Bucket": {
+          "Ref": "TestKbSupplementalBucketE9AD4060",
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:*",
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false",
+                },
+              },
+              "Effect": "Deny",
+              "Principal": {
+                "AWS": "*",
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "TestKbSupplementalBucketE9AD4060",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "TestKbSupplementalBucketE9AD4060",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "s3:PutBucketPolicy",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::GetAtt": [
+                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+                    "Arn",
+                  ],
+                },
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "TestKbSupplementalBucketE9AD4060",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "TestKbSupplementalBucketE9AD4060",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::S3::BucketPolicy",
+    },
+    "TestprefixAgentEcrRepository8443AE4C": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "EmptyOnDelete": true,
+        "ImageScanningConfiguration": {
+          "ScanOnPush": true,
+        },
+        "RepositoryName": "testprefix-agent-testprefix",
+      },
+      "Type": "AWS::ECR::Repository",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "TestprefixAgentMemory2B721A3D": {
+      "Properties": {
+        "Description": "Memory for testprefix_agent_testprefix",
+        "EventExpiryDuration": 90,
+        "MemoryExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "TestprefixAgentMemoryServiceRole9080A8EF",
+            "Arn",
+          ],
+        },
+        "MemoryStrategies": [
+          {
+            "SummaryMemoryStrategy": {
+              "Name": "SessionSummarizer",
+              "Namespaces": [
+                "/summaries/{actorId}/{sessionId}",
+              ],
+              "Type": "SUMMARIZATION",
+            },
+          },
+          {
+            "UserPreferenceMemoryStrategy": {
+              "Name": "UserPreferenceLearner",
+              "Namespaces": [
+                "/preferences/{actorId}",
+              ],
+              "Type": "USER_PREFERENCE",
+            },
+          },
+        ],
+        "Name": "testprefix_agent_testprefix_memory",
+      },
+      "Type": "AWS::BedrockAgentCore::Memory",
+    },
+    "TestprefixAgentMemoryServiceRole9080A8EF": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "ArnLike": {
+                  "aws:SourceArn": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:",
+                        {
+                          "Ref": "AWS::Partition",
+                        },
+                        ":bedrock-agentcore:us-west-2:123456789012:memory/testprefix_agent_testprefix_memory*",
+                      ],
+                    ],
+                  },
+                },
+                "StringEquals": {
+                  "aws:SourceAccount": "123456789012",
+                },
+              },
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "bedrock-agentcore.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "TestprefixAgentRuntime67CF7F52": {
+      "DependsOn": [
+        "TestprefixAgentRuntimeExecutionRoleDefaultPolicy67422900",
+        "TestprefixAgentRuntimeExecutionRole4F84C885",
+      ],
+      "Properties": {
+        "AgentRuntimeArtifact": {
+          "ContainerConfiguration": {
+            "ContainerUri": {
+              "Fn::Sub": "123456789012.dkr.ecr.us-west-2.\${AWS::URLSuffix}/cdk-hnb659fds-container-assets-123456789012-us-west-2:009ac40ce9e863af4ae82ffe72fa77642cb166ff53292cda6891dc7feb94bdd2",
+            },
+          },
+        },
+        "AgentRuntimeName": "testprefix_agent_testprefix",
+        "Description": "Strands agent: testprefix",
+        "EnvironmentVariables": {
+          "AWS_DEFAULT_REGION": {
+            "Ref": "AWS::Region",
+          },
+          "KNOWLEDGE_BASE_ID": {
+            "Fn::GetAtt": [
+              "TestKbKnowledgeBase0D86AB90",
+              "KnowledgeBaseId",
+            ],
+          },
+          "MCP_RUNTIME_ARN": {
+            "Fn::GetAtt": [
+              "TestprefixMcpServerRuntimeBE38ED50",
+              "AgentRuntimeArn",
+            ],
+          },
+          "MEMORY_ID": {
+            "Fn::GetAtt": [
+              "TestprefixAgentMemory2B721A3D",
+              "MemoryId",
+            ],
+          },
+          "MODEL_ID": "global.anthropic.claude-haiku-4-5-20251001-v1:0",
+        },
+        "LifecycleConfiguration": {},
+        "NetworkConfiguration": {
+          "NetworkMode": "PUBLIC",
+        },
+        "ProtocolConfiguration": "HTTP",
+        "RoleArn": {
+          "Fn::GetAtt": [
+            "TestprefixAgentRuntimeExecutionRole4F84C885",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::BedrockAgentCore::Runtime",
+    },
+    "TestprefixAgentRuntimeExecutionRole4F84C885": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "ArnLike": {
+                  "aws:SourceArn": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:",
+                        {
+                          "Ref": "AWS::Partition",
+                        },
+                        ":bedrock-agentcore:us-west-2:123456789012:runtime/testprefix_agent_testprefix*",
+                      ],
+                    ],
+                  },
+                },
+                "StringEquals": {
+                  "aws:SourceAccount": "123456789012",
+                },
+              },
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "bedrock-agentcore.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Description": "Execution role for Bedrock Agent Core Runtime",
+        "MaxSessionDuration": 28800,
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "TestprefixAgentRuntimeExecutionRoleDefaultPolicy67422900": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "logs:DescribeLogStreams",
+                "logs:CreateLogGroup",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":logs:us-west-2:123456789012:log-group:/aws/bedrock-agentcore/runtimes/*",
+                  ],
+                ],
+              },
+              "Sid": "LogGroupAccess",
+            },
+            {
+              "Action": "logs:DescribeLogGroups",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":logs:us-west-2:123456789012:log-group:*",
+                  ],
+                ],
+              },
+              "Sid": "DescribeLogGroups",
+            },
+            {
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":logs:us-west-2:123456789012:log-group:/aws/bedrock-agentcore/runtimes/*:log-stream:*",
+                  ],
+                ],
+              },
+              "Sid": "LogStreamAccess",
+            },
+            {
+              "Action": [
+                "xray:PutTraceSegments",
+                "xray:PutTelemetryRecords",
+                "xray:GetSamplingRules",
+                "xray:GetSamplingTargets",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+              "Sid": "XRayAccess",
+            },
+            {
+              "Action": "cloudwatch:PutMetricData",
+              "Condition": {
+                "StringEquals": {
+                  "cloudwatch:namespace": "bedrock-agentcore",
+                },
+              },
+              "Effect": "Allow",
+              "Resource": "*",
+              "Sid": "CloudWatchMetrics",
+            },
+            {
+              "Action": [
+                "bedrock-agentcore:GetWorkloadAccessToken",
+                "bedrock-agentcore:GetWorkloadAccessTokenForJWT",
+                "bedrock-agentcore:GetWorkloadAccessTokenForUserId",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":bedrock-agentcore:us-west-2:123456789012:workload-identity-directory/default",
+                    ],
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":bedrock-agentcore:us-west-2:123456789012:workload-identity-directory/default/workload-identity/*",
+                    ],
+                  ],
+                },
+              ],
+              "Sid": "GetAgentAccessToken",
+            },
+            {
+              "Action": [
+                "bedrock:InvokeModel",
+                "bedrock:InvokeModelWithResponseStream",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                "arn:aws:bedrock:*::foundation-model/*",
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:bedrock:",
+                      {
+                        "Ref": "AWS::Region",
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId",
+                      },
+                      ":*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "bedrock-agentcore:GetEvent",
+                "bedrock-agentcore:ListEvents",
+                "bedrock-agentcore:ListActors",
+                "bedrock-agentcore:ListSessions",
+                "bedrock-agentcore:GetMemoryRecord",
+                "bedrock-agentcore:RetrieveMemoryRecords",
+                "bedrock-agentcore:ListMemoryRecords",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "TestprefixAgentMemory2B721A3D",
+                  "MemoryArn",
+                ],
+              },
+            },
+            {
+              "Action": "bedrock-agentcore:CreateEvent",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "TestprefixAgentMemory2B721A3D",
+                  "MemoryArn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "bedrock-agentcore:InvokeAgentRuntime",
+                "bedrock-agentcore:InvokeAgentRuntimeForUser",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "TestprefixMcpServerRuntimeBE38ED50",
+                    "AgentRuntimeArn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "TestprefixMcpServerRuntimeBE38ED50",
+                          "AgentRuntimeArn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "bedrock:Retrieve",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "TestKbKnowledgeBase0D86AB90",
+                  "KnowledgeBaseArn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "TestprefixAgentEcrRepository8443AE4C",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": "ecr:GetAuthorizationToken",
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+            {
+              "Action": [
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":ecr:us-west-2:123456789012:repository/cdk-hnb659fds-container-assets-123456789012-us-west-2",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "TestprefixAgentRuntimeExecutionRoleDefaultPolicy67422900",
+        "Roles": [
+          {
+            "Ref": "TestprefixAgentRuntimeExecutionRole4F84C885",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "TestprefixMcpEcrRepositoryBD6D51A3": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "EmptyOnDelete": true,
+        "ImageScanningConfiguration": {
+          "ScanOnPush": true,
+        },
+        "RepositoryName": "testprefix-mcp-testprefix",
+      },
+      "Type": "AWS::ECR::Repository",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "TestprefixMcpServerRuntimeBE38ED50": {
+      "DependsOn": [
+        "TestprefixMcpServerRuntimeExecutionRoleDefaultPolicyFC1D6FD5",
+        "TestprefixMcpServerRuntimeExecutionRole1F9646A1",
+      ],
+      "Properties": {
+        "AgentRuntimeArtifact": {
+          "ContainerConfiguration": {
+            "ContainerUri": {
+              "Fn::Sub": "123456789012.dkr.ecr.us-west-2.\${AWS::URLSuffix}/cdk-hnb659fds-container-assets-123456789012-us-west-2:7341274ac78793d1822c2a57dc98e03d22aa3ceaeb55d0069cc3c7043cd48bba",
+            },
+          },
+        },
+        "AgentRuntimeName": "testprefix_mcp_testprefix",
+        "Description": "MCP server: testprefix",
+        "EnvironmentVariables": {
+          "AWS_DEFAULT_REGION": {
+            "Ref": "AWS::Region",
+          },
+        },
+        "LifecycleConfiguration": {},
+        "NetworkConfiguration": {
+          "NetworkMode": "PUBLIC",
+        },
+        "ProtocolConfiguration": "MCP",
+        "RoleArn": {
+          "Fn::GetAtt": [
+            "TestprefixMcpServerRuntimeExecutionRole1F9646A1",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::BedrockAgentCore::Runtime",
+    },
+    "TestprefixMcpServerRuntimeExecutionRole1F9646A1": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "ArnLike": {
+                  "aws:SourceArn": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:",
+                        {
+                          "Ref": "AWS::Partition",
+                        },
+                        ":bedrock-agentcore:us-west-2:123456789012:runtime/testprefix_mcp_testprefix*",
+                      ],
+                    ],
+                  },
+                },
+                "StringEquals": {
+                  "aws:SourceAccount": "123456789012",
+                },
+              },
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "bedrock-agentcore.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Description": "Execution role for Bedrock Agent Core Runtime",
+        "MaxSessionDuration": 28800,
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "TestprefixMcpServerRuntimeExecutionRoleDefaultPolicyFC1D6FD5": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "logs:DescribeLogStreams",
+                "logs:CreateLogGroup",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":logs:us-west-2:123456789012:log-group:/aws/bedrock-agentcore/runtimes/*",
+                  ],
+                ],
+              },
+              "Sid": "LogGroupAccess",
+            },
+            {
+              "Action": "logs:DescribeLogGroups",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":logs:us-west-2:123456789012:log-group:*",
+                  ],
+                ],
+              },
+              "Sid": "DescribeLogGroups",
+            },
+            {
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":logs:us-west-2:123456789012:log-group:/aws/bedrock-agentcore/runtimes/*:log-stream:*",
+                  ],
+                ],
+              },
+              "Sid": "LogStreamAccess",
+            },
+            {
+              "Action": [
+                "xray:PutTraceSegments",
+                "xray:PutTelemetryRecords",
+                "xray:GetSamplingRules",
+                "xray:GetSamplingTargets",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+              "Sid": "XRayAccess",
+            },
+            {
+              "Action": "cloudwatch:PutMetricData",
+              "Condition": {
+                "StringEquals": {
+                  "cloudwatch:namespace": "bedrock-agentcore",
+                },
+              },
+              "Effect": "Allow",
+              "Resource": "*",
+              "Sid": "CloudWatchMetrics",
+            },
+            {
+              "Action": [
+                "bedrock-agentcore:GetWorkloadAccessToken",
+                "bedrock-agentcore:GetWorkloadAccessTokenForJWT",
+                "bedrock-agentcore:GetWorkloadAccessTokenForUserId",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":bedrock-agentcore:us-west-2:123456789012:workload-identity-directory/default",
+                    ],
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":bedrock-agentcore:us-west-2:123456789012:workload-identity-directory/default/workload-identity/*",
+                    ],
+                  ],
+                },
+              ],
+              "Sid": "GetAgentAccessToken",
+            },
+            {
+              "Action": [
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "TestprefixMcpEcrRepositoryBD6D51A3",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": "ecr:GetAuthorizationToken",
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+            {
+              "Action": [
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":ecr:us-west-2:123456789012:repository/cdk-hnb659fds-container-assets-123456789012-us-west-2",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "TestprefixMcpServerRuntimeExecutionRoleDefaultPolicyFC1D6FD5",
+        "Roles": [
+          {
+            "Ref": "TestprefixMcpServerRuntimeExecutionRole1F9646A1",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;

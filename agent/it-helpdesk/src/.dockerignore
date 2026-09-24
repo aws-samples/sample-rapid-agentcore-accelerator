@@ -1,0 +1,46 @@
+# Docker build context exclusions for the it-helpdesk agent image.
+#
+# This file has a second job beyond trimming the build context: the CDK
+# DockerImageAsset appends every line here to its asset `exclude` list, so
+# anything excluded below is also kept out of the asset fingerprint that
+# becomes the AgentCore Runtime ContainerUri. That is what makes the
+# synthesized template reproducible across machines — without it, a local
+# .venv/ or __pycache__/ leaks into the hash.
+#
+# Do NOT exclude anything the Dockerfile copies: pyproject.toml, uv.lock,
+# main.py, tools/, utils/.
+
+# Local virtualenvs
+.venv/
+**/.venv/
+
+# Python bytecode and interpreter caches
+__pycache__/
+**/__pycache__/
+*.py[cod]
+**/*.py[cod]
+
+# Local toolchain pin — the image pins Python via its base image
+.python-version
+
+# Test, lint, and type-check caches
+.pytest_cache/
+**/.pytest_cache/
+.ruff_cache/
+**/.ruff_cache/
+.mypy_cache/
+**/.mypy_cache/
+
+# Packaging metadata
+*.egg-info/
+**/*.egg-info/
+
+# Local secrets. .env.example is documentation and stays in the context.
+.env
+**/.env
+!.env.example
+!**/.env.example
+
+# OS cruft
+.DS_Store
+**/.DS_Store
