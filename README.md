@@ -36,7 +36,7 @@ Five commands from a clean clone. The shipped `config.yaml` works unmodified, so
    cd infra && npx cdk bootstrap && cd ..
    ```
 
-3. Deploy the stack. This builds ARM64 container images locally and provisions everything in `config.yaml` (`make install` runs first to fetch the CDK dependencies):
+3. Deploy the stack. This builds ARM64 container images locally and provisions everything in `config.yaml` (`make install` runs first to fetch the CDK dependencies, the target region must be set explicitly via `region`):
 
    ```bash
    make deploy
