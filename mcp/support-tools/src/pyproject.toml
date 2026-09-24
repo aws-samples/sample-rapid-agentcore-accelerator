@@ -5,5 +5,5 @@ description = "Customer support MCP server with tools for AgentCore Runtime"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "mcp==1.25.0",
+    "mcp==1.28.1",
 ]
