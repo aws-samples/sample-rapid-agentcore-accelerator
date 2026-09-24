@@ -4,7 +4,7 @@
 
 # RAPID — Rapid Agent Prototyping & Infrastructure Deployment
 
-RAPID is a config-driven monorepo blueprint for standing up agentic AI solutions on [Amazon Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html). You describe your agents, MCP tool servers, and knowledge bases in one `config.yaml`, run one deploy, and get a wired stack you can start customizing immediately. It is built for developers who want a working agent in an AWS account today and would rather spend their time on agent behaviour than on infrastructure plumbing.
+RAPID is a config-driven monorepo blueprint for standing up agentic AI solutions on [Amazon Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html). It is built around composition and progressive extensibility: you declare agents, MCP tool servers, and knowledge bases in one `config.yaml`, and each maps to an independent building block that one deploy wires into a single stack. Start with config alone, move into the agent and tool code when you need custom behaviour, and drop down to the underlying CDK constructs only if you outgrow the config. It is built for developers who want a working agent in an AWS account today and would rather spend their time on agent behaviour than on infrastructure plumbing.
 
 > **Sample code.** This repository is intended for demonstration and prototyping. Review and adapt it to your own security, reliability, and compliance requirements before any production use.
 
