@@ -13,8 +13,11 @@ deploymentPrefix: rapid-v1
 region: us-west-2
 
 # Default Bedrock model ID. Agents inherit this unless they set their own.
-# Omit to use the default: global.anthropic.claude-haiku-4-5-20251001-v1:0
-# modelId: global.anthropic.claude-haiku-4-5-20251001-v1:0
+# Omit to use the default: global.anthropic.claude-sonnet-5-5
+# If the global inference profile is not available to you, use a regional one
+# by swapping the prefix (us., eu., apac., au., jp.), for example
+# eu.anthropic.claude-sonnet-5-5. See docs/configuration.md.
+# modelId: global.anthropic.claude-sonnet-5-5
 
 # Image source. "local" builds Docker images from source on your machine.
 # "pipeline" pulls images from ECR, and is set for you by `make enable-cicd`.
@@ -62,12 +65,12 @@ knowledgeBases:
 # Memory, ECR repository, and (in pipeline mode) CI/CD pipeline.
 agents:
   - name: customer-support       # sourceDir defaults to agent/{name}/src
-    modelId: global.anthropic.claude-haiku-4-5-20251001-v1:0
+    modelId: global.anthropic.claude-sonnet-5-5
     knowledgeBase: support-docs
     mcpServers:
       - support-tools
   - name: it-helpdesk
-    modelId: global.anthropic.claude-haiku-4-5-20251001-v1:0
+    modelId: global.anthropic.claude-sonnet-5-5
     knowledgeBase: it-docs
 
 # MCP servers. Required. Each entry gets its own AgentCore Runtime, ECR

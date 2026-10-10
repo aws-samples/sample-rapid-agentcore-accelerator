@@ -68,7 +68,7 @@ function baseConfig(): ConfigObject {
   return {
     region: 'us-west-2',
     deploymentPrefix: 'testprefix',
-    modelId: 'global.anthropic.claude-haiku-4-5-20251001-v1:0',
+    modelId: 'global.anthropic.claude-sonnet-5-5',
     deploymentMode: 'local',
     frontendMode: 'none',
     agents: [

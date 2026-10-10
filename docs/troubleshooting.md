@@ -34,7 +34,7 @@ missing `jq` surfaces before a deploy rather than halfway through one.
 
 | Problem | Check | Log source |
 |---|---|---|
-| Agent not responding | `make logs` → check for errors; verify model access in the Bedrock console for your configured `region` | `make logs`, or CloudWatch log group `/aws/bedrock-agentcore/runtimes/<runtime-name>-DEFAULT` |
+| Agent not responding | `make logs` → check for errors; verify model access in the Bedrock console for your configured `region`; if the `global.` inference profile is unavailable, switch `modelId` to a regional profile such as `us.` or `eu.` ([details](configuration.md#if-the-global-inference-profile-is-not-available-to-you)) | `make logs`, or CloudWatch log group `/aws/bedrock-agentcore/runtimes/<runtime-name>-DEFAULT` |
 | KB returns no results | Documents uploaded to the `kb-source-docs/` prefix? Sync job completed? | Bedrock console → Knowledge base → Data source → **Sync history** |
 | CI/CD pipeline failing | CodeBuild logs in the AWS Console; verify the ARM64 Dockerfile builds locally | CodeBuild project logs in CloudWatch, reachable from the pipeline's failed action |
 | Tools not being called | Check docstring clarity; verify the tool is in the `tools` list in `create_agent()` | `make logs` — Strands logs each tool-selection decision; set `DEBUG=true` for verbose tracing |

@@ -18,12 +18,12 @@ describe('AgentCoreStack', () => {
     const config: AcceleratorConfig = {
       region: 'us-west-2',
       deploymentPrefix: 'testprefix',
-      modelId: 'global.anthropic.claude-haiku-4-5-20251001-v1:0',
+      modelId: 'global.anthropic.claude-sonnet-5-5',
       deploymentMode: 'local',
       frontendMode: 'none',
       domainName: null,
       hostedZoneName: null,
-      agents: [{ name: 'testprefix', sourceDir: 'agent/customer-support/src', modelId: 'global.anthropic.claude-haiku-4-5-20251001-v1:0', knowledgeBase: 'test-kb' }],
+      agents: [{ name: 'testprefix', sourceDir: 'agent/customer-support/src', modelId: 'global.anthropic.claude-sonnet-5-5', knowledgeBase: 'test-kb' }],
       mcpServers: [{ name: 'testprefix', sourceDir: 'mcp/support-tools/src' }],
       knowledgeBases: [{ name: 'test-kb', sourceDir: 'knowledge-bases/test-kb' }],
     };

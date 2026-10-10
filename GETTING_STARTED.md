@@ -51,12 +51,12 @@ knowledgeBases:
 
 agents:
   - name: customer-support
-    modelId: global.anthropic.claude-haiku-4-5-20251001-v1:0
+    modelId: global.anthropic.claude-sonnet-5-5
     knowledgeBase: support-docs
     mcpServers:
       - support-tools
   - name: it-helpdesk
-    modelId: global.anthropic.claude-haiku-4-5-20251001-v1:0
+    modelId: global.anthropic.claude-sonnet-5-5
     knowledgeBase: it-docs
 
 mcpServers:
@@ -573,7 +573,7 @@ const mcpServer = new AgentCoreMCPServer(this, 'MyMCP', {
 const agent = new AgentCoreAgent(this, 'MyAgent', {
   runtimeName: 'my_agent',
   agentAssetPath: '../agent/my-agent/src',
-  modelId: 'global.anthropic.claude-haiku-4-5-20251001-v1:0',
+  modelId: 'global.anthropic.claude-sonnet-5-5',
   environmentVariables: {
     KNOWLEDGE_BASE_ID: kb.knowledgeBaseId,
     MCP_RUNTIME_ARN: mcpServer.runtime.agentRuntimeArn,

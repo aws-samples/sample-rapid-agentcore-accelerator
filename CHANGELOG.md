@@ -21,6 +21,7 @@ Initial public release.
     - name: support-tools
   ```
 
+- **Default model changed from `global.anthropic.claude-haiku-4-5-20251001-v1:0` to `global.anthropic.claude-sonnet-5-5`.** This applies to the configuration loader default, the shipped `config.yaml` agents, `make doctor`, and the documentation. Enable access to the new model in your target region, or set `modelId` explicitly to keep the previous one.
 - **Default `region` changed from `eu-central-1` to `us-west-2`,** so that the shipped configuration matches the region used in the documented quickstart. Set `region` to whichever region you have Amazon Bedrock model access in.
 
 - **Default `frontendMode` changed from `cloudfront` to `none`.** The previous default provisioned a VPC with a NAT gateway, an Application Load Balancer, a CloudFront distribution, and a Cognito user pool — recurring cost and an authentication setup step that the quickstart did not describe. `none` provisions no network-exposed endpoint and none of those resources. Set `frontendMode` back to `cloudfront` when you want the hosted frontend; see [docs/frontend.md](docs/frontend.md) for what each mode provisions and what it costs while idle.

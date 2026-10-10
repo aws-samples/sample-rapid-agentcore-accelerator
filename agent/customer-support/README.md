@@ -133,7 +133,7 @@ def lookup_order(order_id: str) -> str:
 modelId: global.anthropic.claude-sonnet-4-5-20250929-v1:0
 ```
 
-The default is `global.anthropic.claude-haiku-4-5-20251001-v1:0`. For a local run, export `MODEL_ID` in your shell before starting the agent. Every model identifier the [configuration reference](../../docs/configuration.md) accepts must be enabled for your account in Amazon Bedrock.
+The default is `global.anthropic.claude-sonnet-5-5`. For a local run, export `MODEL_ID` in your shell before starting the agent. Every model identifier the [configuration reference](../../docs/configuration.md) accepts must be enabled for your account in Amazon Bedrock.
 
 All models must be accessed through Amazon Bedrock, which is designed to provide managed security, compliance monitoring, and cost controls.
 

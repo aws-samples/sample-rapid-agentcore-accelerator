@@ -12,7 +12,7 @@ The loader is [`infra/lib/config.ts`](../infra/lib/config.ts). It reads the file
 |---|---|---|---|---|
 | `deploymentPrefix` | string | Yes | — | Prefixed onto every resource name so the stack can be deployed more than once in the same account and region. 1–20 characters, lowercase letters, numbers, and hyphens, starting and ending with a letter or number. |
 | `region` | string | Yes | — | The AWS region the stack deploys into. Bedrock model access must be enabled in this region. |
-| `modelId` | string | No | `global.anthropic.claude-haiku-4-5-20251001-v1:0` | Default Bedrock model for every agent. Ships commented out, so the default applies unless you uncomment it. Any agent can override it. |
+| `modelId` | string | No | `global.anthropic.claude-sonnet-5-5` | Default Bedrock model for every agent. Ships commented out, so the default applies unless you uncomment it. Any agent can override it. |
 | `deploymentMode` | `local` \| `pipeline` | No | `local` | Where container images come from. `local` builds them from source on your machine via CDK Docker assets; `pipeline` pulls them from ECR. `make enable-cicd` switches this for you. |
 | `frontendMode` | `none` \| `internal` \| `public` \| `cloudfront` | Yes | — | Which Streamlit frontend to deploy. `none` provisions no VPC, load balancer, CloudFront distribution, or Cognito user pool. Every other value provisions resources that bill while idle. See [`docs/frontend.md`](frontend.md) and [`docs/cost-and-teardown.md`](cost-and-teardown.md). |
 | `domainName` | string \| null | Conditional | `null` | Custom domain for the frontend. **Required** when `frontendMode` is `public` — the loader rejects that combination without it, because a public load balancer with no certificate would serve plaintext HTTP. Optional for `cloudfront`, where it replaces the generated CloudFront URL. Ignored by `none` and `internal`. |
@@ -60,10 +60,29 @@ Three keys that older copies of `config.yaml` declared — `documentsBucketName`
 The loader's default when `modelId` is absent or empty is:
 
 ```text
-global.anthropic.claude-haiku-4-5-20251001-v1:0
+global.anthropic.claude-sonnet-5-5
 ```
 
 Model access must be enabled for that identifier in the region you set, or the first invocation fails. See [`docs/troubleshooting.md`](troubleshooting.md).
+
+### If the global inference profile is not available to you
+
+The `global.` prefix selects a global cross-Region inference profile, which lets Amazon Bedrock route a request to any supported commercial region. It may be unavailable for your model or region, or your data residency rules may not allow it. In that case, set `modelId` to a geographic inference profile by swapping the prefix:
+
+| Prefix | Routes within |
+|---|---|
+| `us.` | United States regions |
+| `eu.` | European regions |
+| `apac.` | Asia Pacific regions |
+| `au.` | Australia regions |
+| `jp.` | Japan regions |
+| `us-gov.` | AWS GovCloud (US) regions |
+
+```yaml
+modelId: eu.anthropic.claude-sonnet-5-5
+```
+
+To see which profiles your model offers, open the Amazon Bedrock console and go to **Cross-region inference**, or run `aws bedrock list-inference-profiles --region <region>`. Use the exact profile ID listed there. A model ID with no prefix calls the model directly in the deployment region, which works only when the model is hosted there. The stack scopes the agent's IAM permissions to whichever identifier you set, so no other change is needed.
 
 ---
 
@@ -95,8 +114,8 @@ deploymentPrefix: rapid-v1
 region: us-west-2
 
 # Default Bedrock model ID. Agents inherit this unless they set their own.
-# Omit to use the default: global.anthropic.claude-haiku-4-5-20251001-v1:0
-# modelId: global.anthropic.claude-haiku-4-5-20251001-v1:0
+# Omit to use the default: global.anthropic.claude-sonnet-5-5
+# modelId: global.anthropic.claude-sonnet-5-5
 
 # Image source. "local" builds Docker images from source on your machine.
 # "pipeline" pulls images from ECR, and is set for you by `make enable-cicd`.
@@ -125,12 +144,12 @@ knowledgeBases:
 # Memory, ECR repository, and (in pipeline mode) CI/CD pipeline.
 agents:
   - name: customer-support       # sourceDir defaults to agent/{name}/src
-    modelId: global.anthropic.claude-haiku-4-5-20251001-v1:0
+    modelId: global.anthropic.claude-sonnet-5-5
     knowledgeBase: support-docs
     mcpServers:
       - support-tools
   - name: it-helpdesk
-    modelId: global.anthropic.claude-haiku-4-5-20251001-v1:0
+    modelId: global.anthropic.claude-sonnet-5-5
     knowledgeBase: it-docs
 
 # MCP servers. Required. Each entry gets its own AgentCore Runtime, ECR

@@ -51,7 +51,7 @@ MODEL_ID="$(read_config_value modelId)"
 
 # modelId is optional in config.yaml — default to the same value as the CDK config loader
 if [ -z "$MODEL_ID" ]; then
-  MODEL_ID="global.anthropic.claude-haiku-4-5-20251001-v1:0"
+  MODEL_ID="global.anthropic.claude-sonnet-5-5"
 fi
 
 # --- State ---
@@ -87,7 +87,7 @@ if [ -z "$REGION" ] || [ -z "$MODEL_ID" ]; then
   fail "Bedrock model access" "Cannot check — region or modelId missing from config.yaml"
 else
   # Strip cross-region routing prefix (e.g. "global." or "eu.") to get the base model id
-  BASE_MODEL_ID="$(echo "$MODEL_ID" | sed 's/^[a-z]*\.//')"
+  BASE_MODEL_ID="$(echo "$MODEL_ID" | sed 's/^[a-z-]*\.//')"
   run_with_timeout 10 aws bedrock get-foundation-model \
       --model-identifier "$BASE_MODEL_ID" \
       --region "$REGION" >/dev/null 2>&1
@@ -97,7 +97,7 @@ else
   elif [ "$BEDROCK_EXIT" -eq 124 ]; then
     fail "Bedrock model access (timed out)" "Enable model access in the Bedrock console for $REGION"
   else
-    fail "Bedrock model access ($MODEL_ID)" "Enable model access in the Bedrock console for $REGION"
+    fail "Bedrock model access ($MODEL_ID)" "Enable model access in the Bedrock console for $REGION. If a global. profile is unavailable, set modelId to a regional one (us., eu., apac.) — see docs/configuration.md"
   fi
 fi
 

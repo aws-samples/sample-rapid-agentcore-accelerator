@@ -110,7 +110,7 @@ export interface AgentCoreAgentProps {
   readonly runtimeName: string;
 
   /**
-   * Bedrock model ID used by this agent (e.g. 'global.anthropic.claude-haiku-4-5-20251001-v1:0').
+   * Bedrock model ID used by this agent (e.g. 'global.anthropic.claude-sonnet-5-5').
    * Used to scope IAM permissions to only the configured model's inference profile.
    * @default - Grants access to all foundation models (less secure)
    */
@@ -295,7 +295,7 @@ export class AgentCoreAgent extends Construct {
       // Known global/geographic inference-profile prefixes, longest first so
       // 'us-gov' is matched before 'us'. This covers every Bedrock inference-profile
       // geography available today — extend it if AWS introduces a new one.
-      const profilePrefix = /^(global|us-gov|us|eu|apac)\./;
+      const profilePrefix = /^(global|us-gov|us|eu|apac|au|jp)\./;
 
       // Underlying foundation model. The '*' region segment intentionally covers the
       // source Region, every destination Region of a cross-Region profile, and the
@@ -313,7 +313,7 @@ export class AgentCoreAgent extends Construct {
     } else {
       throw new Error(
         'modelId is required for the AgentCoreAgent construct. ' +
-        'Provide a Bedrock model ID (e.g., "global.anthropic.claude-haiku-4-5-20251001-v1:0") ' +
+        'Provide a Bedrock model ID (e.g., "global.anthropic.claude-sonnet-5-5") ' +
         'to scope IAM permissions to specific foundation models.'
       );
     }

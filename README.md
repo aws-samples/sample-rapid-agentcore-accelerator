@@ -99,7 +99,7 @@ The repository is also built with agentic development in mind. [AGENTS.md](AGENT
 
 ## Configuration
 
-Everything is driven by [`config.yaml`](config.yaml) at the repository root: the deployment prefix, the region, the default model, the frontend mode, and the lists of agents, MCP servers, and knowledge bases. Edit it and run `make deploy` — there are no context flags and no environment variables to set. The default model is `global.anthropic.claude-haiku-4-5-20251001-v1:0`.
+Everything is driven by [`config.yaml`](config.yaml) at the repository root: the deployment prefix, the region, the default model, the frontend mode, and the lists of agents, MCP servers, and knowledge bases. Edit it and run `make deploy` — there are no context flags and no environment variables to set. The default model is `global.anthropic.claude-sonnet-5-5`.
 
 Every key, its type, its default, and its effect: [`docs/configuration.md`](docs/configuration.md).
 

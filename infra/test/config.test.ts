@@ -24,7 +24,7 @@ function baseConfigObject(): Record<string, unknown> {
   return {
     region: 'us-west-2',
     deploymentPrefix: 'testprefix',
-    modelId: 'global.anthropic.claude-haiku-4-5-20251001-v1:0',
+    modelId: 'global.anthropic.claude-sonnet-5-5',
     deploymentMode: 'local',
     frontendMode: 'none',
     agents: [{ name: 'customer-support' }],
@@ -132,7 +132,7 @@ describe('loadAcceleratorConfig - required keys', () => {
       {
         name: 'customer-support',
         sourceDir: 'agent/customer-support/src',
-        modelId: 'global.anthropic.claude-haiku-4-5-20251001-v1:0',
+        modelId: 'global.anthropic.claude-sonnet-5-5',
       },
     ]);
     expect(config.mcpServers).toEqual([

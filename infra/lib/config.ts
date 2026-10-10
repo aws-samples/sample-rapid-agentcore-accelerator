@@ -130,8 +130,8 @@ export function loadAcceleratorConfig(repoRoot: string): AcceleratorConfig {
     );
   }
 
-  // Validate modelId (optional — defaults to Claude Haiku 4.5 if not specified)
-  const DEFAULT_MODEL_ID = 'global.anthropic.claude-haiku-4-5-20251001-v1:0';
+  // Validate modelId (optional — defaults to Claude Sonnet 5.5 if not specified)
+  const DEFAULT_MODEL_ID = 'global.anthropic.claude-sonnet-5-5';
   const rawModelId = config['modelId'];
   const modelId = rawModelId && typeof rawModelId === 'string' && rawModelId.trim() !== ''
     ? rawModelId.trim()
