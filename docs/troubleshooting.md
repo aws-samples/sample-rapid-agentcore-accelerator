@@ -124,7 +124,7 @@ The legacy builder is deprecated ... Install the buildx component to build image
 3. Register QEMU emulators for arm64 (re-run after a reboot if needed):
 
    ```bash
-   docker run --privileged --rm tonistiigi/binfmt:qemu-v9.2.2-53 --install arm64
+   docker run --privileged --rm tonistiigi/binfmt:latest --install arm64
    ```
 
    `tonistiigi/binfmt` is the image referenced by Docker's

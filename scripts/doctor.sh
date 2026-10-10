@@ -102,14 +102,18 @@ else
 fi
 
 # --- 3. Docker running (10s timeout) ---
-run_with_timeout 10 docker info >/dev/null 2>&1
+DOCKER_OUT="$(run_with_timeout 10 docker info 2>&1 >/dev/null)"
 DOCKER_EXIT=$?
 if [ "$DOCKER_EXIT" -eq 0 ]; then
   pass "Docker running"
 elif [ "$DOCKER_EXIT" -eq 124 ]; then
   fail "Docker (timed out)" "Start Docker Desktop or dockerd"
+elif echo "$DOCKER_OUT" | grep -qi "permission denied"; then
+  # The daemon is up, but this user can't reach its socket (common on Linux/EC2).
+  fail "Docker running (daemon reachable but permission denied)" \
+    "Your user can't read /var/run/docker.sock. Check its group with \`ls -l /var/run/docker.sock\`, then add yourself to it and start a new login session (or run \`newgrp docker\`): sudo usermod -aG docker \"\$(id -un)\" — if the docker group doesn't exist yet, create it first with: sudo groupadd docker"
 else
-  fail "Docker running" "Start Docker Desktop or dockerd"
+  fail "Docker running" "Start Docker Desktop or dockerd. docker info said: $(echo "$DOCKER_OUT" | head -n 1)"
 fi
 
 # --- 3b. ARM64 image build capability ---
@@ -126,11 +130,19 @@ else
   elif ! docker buildx version >/dev/null 2>&1; then
     fail "ARM64 build capability ($HOST_ARCH host, docker buildx not installed)" \
       "AgentCore needs ARM64 images; the legacy builder can't cross-build. Install buildx — Ubuntu/Debian: sudo apt install docker-buildx (Docker apt repo: docker-buildx-plugin) | Amazon Linux/RHEL: sudo dnf install docker-buildx-plugin | manual: https://github.com/docker/buildx#manual-download — then run \`docker buildx install\`"
-  elif run_with_timeout 30 docker buildx inspect --bootstrap 2>/dev/null | grep -qi "linux/arm64"; then
-    pass "ARM64 build capability (emulation available on $HOST_ARCH host)"
   else
-    fail "ARM64 build capability ($HOST_ARCH host, arm64 emulation not detected)" \
-      "buildx is installed but can't target arm64. Register QEMU emulators once: docker run --privileged --rm tonistiigi/binfmt:qemu-v9.2.2-53 --install arm64"
+    # Capture the output first rather than piping into `grep -q`: with
+    # `set -o pipefail`, grep exiting early can SIGPIPE the producer and make a
+    # successful match look like a failure.
+    BUILDX_OUT="$(run_with_timeout 30 docker buildx inspect --bootstrap 2>&1)"
+    if echo "$BUILDX_OUT" | grep -qi "linux/arm64"; then
+      pass "ARM64 build capability (emulation available on $HOST_ARCH host)"
+    else
+      BUILDX_BUILDER="$(echo "$BUILDX_OUT" | sed -n 's/^Name:[[:space:]]*//p' | head -n 1)"
+      BUILDX_DRIVER="$(echo "$BUILDX_OUT" | sed -n 's/^Driver:[[:space:]]*//p' | head -n 1)"
+      fail "ARM64 build capability ($HOST_ARCH host, arm64 emulation not detected by builder '${BUILDX_BUILDER:-unknown}', driver '${BUILDX_DRIVER:-unknown}')" \
+        "Register QEMU emulators: docker run --privileged --rm tonistiigi/binfmt:latest --install arm64, then re-run make doctor. The registration lives in the kernel and is lost on reboot, so repeat this after restarting the machine. Confirm it with: ls /proc/sys/fs/binfmt_misc/ | grep aarch64. If it is registered but this check still fails and you use a 'docker-container' builder, remove it so it is recreated: \`docker buildx rm ${BUILDX_BUILDER:-<builder>}\`."
+    fi
   fi
 fi
 
