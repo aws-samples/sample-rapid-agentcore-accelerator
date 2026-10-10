@@ -49,11 +49,13 @@ The default deployment provisions these regardless of `frontendMode`.
 |---|---|---|
 | AgentCore Runtime, one per agent and per MCP server | Per-second CPU and memory consumption during a session; no charge for an idle runtime with no sessions | [Bedrock AgentCore pricing](https://aws.amazon.com/bedrock/agentcore/pricing/) |
 | AgentCore Memory, one per agent | Stored events and memory-extraction activity | [Bedrock AgentCore pricing](https://aws.amazon.com/bedrock/agentcore/pricing/) |
-| Bedrock model invocations (agent reasoning, embeddings, memory extraction) | Per input and output token | [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) |
-| S3 buckets — knowledge base documents, supplemental data, access logs | Storage and requests | [Amazon S3 pricing](https://aws.amazon.com/s3/pricing/) |
-| S3 Vectors bucket and index backing each knowledge base | Vector storage and queries | [Amazon S3 pricing](https://aws.amazon.com/s3/pricing/) |
+| Bedrock model invocations (agent reasoning, memory extraction) | Per input and output token | [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) |
+| S3 buckets — the Docs_Bucket for each knowledge base and access logs | Storage and requests | [Amazon S3 pricing](https://aws.amazon.com/s3/pricing/) |
+| Managed knowledge base, one per `knowledgeBases[]` entry | Indexed data size and number of retrievals | [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) |
 | ECR repositories for agent and MCP container images | Storage per GB-month | [Amazon ECR pricing](https://aws.amazon.com/ecr/pricing/) |
 | CloudWatch Logs from runtimes and, in non-`none` modes, the Fargate task | Ingestion, storage, and queries | [Amazon CloudWatch pricing](https://aws.amazon.com/cloudwatch/pricing/) |
+
+For a managed knowledge base, indexed raw data is billed per GB-month, retrieval is billed per call, and the pricing page lists no hourly charge. Source: [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/).
 
 **Bedrock model usage is billed separately from the infrastructure this stack provisions.** Tearing the stack down stops nothing you have already spent on tokens, and a stack that is deployed but never invoked incurs no model charges at all. Model cost is a function of your traffic and your chosen `modelId`, not of the deployment.
 
@@ -76,6 +78,8 @@ make destroy
 ```
 
 This runs `npx cdk destroy --all --force` against the deployed stack. Most resources are created with `RemovalPolicy.DESTROY` and S3 buckets with `autoDeleteObjects`, so buckets, ECR repositories, the VPC, the load balancer, the Fargate service, the CloudFront distribution, and the Cognito user pool are removed with the stack.
+
+`make destroy` deletes the Docs_Bucket objects and the indexed data of each managed knowledge base along with the knowledge base itself.
 
 Confirm the account is clean afterwards rather than assuming it: check the CloudFormation console for the stack, then the resources listed below.
 

@@ -1,21 +1,12 @@
 # BedrockKnowledgeBase Construct
 
-An L3 CDK construct for creating Amazon Bedrock Knowledge Bases with S3 Vectors storage, supporting advanced parsing and chunking strategies.
-
-## Features
-
-- S3 Vectors storage for embeddings (no OpenSearch/Aurora required)
-- Multiple parsing strategies (default, BDA multimodal, Foundation Model)
-- Flexible chunking options (fixed-size, hierarchical, semantic)
-- Automatic IAM role and policy management
-- Grant helpers for access control
+An L3 CDK construct that creates an Amazon Bedrock managed knowledge base (type `MANAGED`) with a service role and one S3 data source. Amazon Bedrock owns the datastore, embedding, reranking, parsing, and chunking, so the construct has no options for them.
 
 ## Resources Created
 
-- S3 Vector Bucket and Index for embeddings
-- Bedrock Knowledge Base
-- IAM Role with least-privilege permissions
-- Data sources with configurable parsing/chunking
+- `AWS::Bedrock::KnowledgeBase` of type `MANAGED` with the service-managed embedding model
+- IAM service role and one policy that Amazon Bedrock uses to read the documents bucket
+- `AWS::Bedrock::DataSource` on an S3 bucket, created by `addS3DataSource`
 
 ## Basic Usage
 
@@ -40,155 +31,40 @@ kb.grantRetrieve(myRole);
 
 | Property | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| `knowledgeBaseName` | string | Yes | - | Name for the knowledge base |
+| `knowledgeBaseName` | string | Yes | - | Name for the knowledge base. Must match `^([0-9a-zA-Z][_-]?){1,100}$`; the construct throws otherwise |
 | `description` | string | No | - | Description for the knowledge base |
-| `embeddingModelId` | string | No | `amazon.titan-embed-text-v2:0` | Embedding model ID |
-| `vectorDimension` | number | No | `1024` | Vector dimension for embeddings |
-| `supplementalDataBucket` | IBucket | No | - | Required for BDA parsing |
 
-## Parsing Strategies
+## addS3DataSource
 
-### Default (No Advanced Parsing)
-```typescript
-kb.addS3DataSource({
-  dataSourceName: 'docs',
-  bucket: myBucket,
-});
-```
+Adds the S3 data source and appends the bucket read permissions to the service role policy. A knowledge base supports one data source: a second call throws an error.
 
-### Bedrock Data Automation (Multimodal)
-Extracts text, tables, and images from documents. Requires `supplementalDataBucket`.
+`S3DataSourceConfig`:
+
+| Property | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `dataSourceName` | string | Yes | - | Name for the data source |
+| `bucket` | IBucket | Yes | - | S3 bucket containing the source documents |
+| `inclusionPrefixes` | string[] | No | Whole bucket | Key prefixes in scope for ingestion |
+
+## grantRetrieve
 
 ```typescript
-// Create KB with supplemental bucket for BDA
-const supplementalBucket = new s3.Bucket(this, 'SupplementalBucket', {
-  removalPolicy: cdk.RemovalPolicy.DESTROY,
-  autoDeleteObjects: true,
-});
-
-const kb = new BedrockKnowledgeBase(this, 'KB', {
-  knowledgeBaseName: 'my-kb',
-  supplementalDataBucket: supplementalBucket,
-});
-
-kb.addS3DataSource({
-  dataSourceName: 'docs',
-  bucket: myBucket,
-  parsingConfig: {
-    strategy: ParsingStrategy.BEDROCK_DATA_AUTOMATION,
-  },
-});
-```
-
-### Foundation Model Parsing
-Uses Claude or other models for complex document parsing.
-
-```typescript
-kb.addS3DataSource({
-  dataSourceName: 'reports',
-  bucket: myBucket,
-  parsingConfig: {
-    strategy: ParsingStrategy.BEDROCK_FOUNDATION_MODEL,
-    foundationModelConfig: {
-      modelArn: `arn:aws:bedrock:${region}::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0`,
-      parsingPromptText: 'Extract all text including tables...', // optional
-    },
-  },
-});
-```
-
-## Chunking Strategies
-
-### Fixed-Size Chunking
-Splits documents into fixed token-size chunks with overlap.
-
-```typescript
-kb.addS3DataSource({
-  dataSourceName: 'docs',
-  bucket: myBucket,
-  chunkingConfig: {
-    strategy: ChunkingStrategy.FIXED_SIZE,
-    fixedSizeConfig: {
-      maxTokens: 500,        // default: 300
-      overlapPercentage: 15, // default: 20
-    },
-  },
-});
-```
-
-### Hierarchical Chunking
-Creates parent/child chunk relationships for better context.
-
-```typescript
-kb.addS3DataSource({
-  dataSourceName: 'books',
-  bucket: myBucket,
-  chunkingConfig: {
-    strategy: ChunkingStrategy.HIERARCHICAL,
-    hierarchicalConfig: {
-      parentMaxTokens: 1500, // default: 1500
-      childMaxTokens: 300,   // default: 300
-      overlapTokens: 60,     // default: 60
-    },
-  },
-});
-```
-
-### Semantic Chunking
-Uses NLP to split at natural boundaries.
-
-```typescript
-kb.addS3DataSource({
-  dataSourceName: 'articles',
-  bucket: myBucket,
-  chunkingConfig: {
-    strategy: ChunkingStrategy.SEMANTIC,
-    semanticConfig: {
-      maxTokens: 300,                    // default: 300
-      bufferSize: 1,                     // default: 1
-      breakpointPercentileThreshold: 95, // default: 95
-    },
-  },
-});
-```
-
-### No Chunking
-Treats each file as a single chunk.
-
-```typescript
-kb.addS3DataSource({
-  dataSourceName: 'small-docs',
-  bucket: myBucket,
-  chunkingConfig: {
-    strategy: ChunkingStrategy.NONE,
-  },
-});
-```
-
-## Combining Parsing and Chunking
-
-```typescript
-kb.addS3DataSource({
-  dataSourceName: 'complex-reports',
-  bucket: myBucket,
-  parsingConfig: {
-    strategy: ParsingStrategy.BEDROCK_DATA_AUTOMATION,
-  },
-  chunkingConfig: {
-    strategy: ChunkingStrategy.HIERARCHICAL,
-  },
-});
-```
-
-## Access Control
-
-```typescript
-// Grant retrieve access
 kb.grantRetrieve(myLambda);
-
-// Grant retrieve and generate access
-kb.grantRetrieveAndGenerate(myAgent);
 ```
+
+Accepts any `IGrantable`. It grants `bedrock:Retrieve` on this knowledge base's ARN only.
+
+## Service Role Permissions
+
+Amazon Bedrock assumes the role for `bedrock.amazonaws.com`, restricted to the stack account and to knowledge bases in the stack Region. The role's single policy contains:
+
+| Action | Resource | Added by |
+|--------|----------|----------|
+| `cloudwatch:PutMetricData` (namespace `AWS/Bedrock/KnowledgeBases`) | `*` | Constructor |
+| `s3:ListBucket` | The data source bucket | `addS3DataSource` |
+| `s3:GetObject` | Objects in the data source bucket | `addS3DataSource` |
+
+The S3 statements require the bucket to belong to the stack account (`aws:ResourceAccount`). The knowledge base and the data source depend on the policy, so the permissions exist when Amazon Bedrock validates them.
 
 ## Exposed Properties
 
@@ -197,16 +73,8 @@ kb.grantRetrieveAndGenerate(myAgent);
 | `knowledgeBase` | CfnKnowledgeBase | The underlying CFN resource |
 | `knowledgeBaseId` | string | Knowledge base ID |
 | `knowledgeBaseArn` | string | Knowledge base ARN |
-| `vectorBucket` | CfnVectorBucket | S3 Vector Bucket |
-| `vectorIndex` | CfnIndex | Vector Index |
-| `role` | Role | IAM role for the knowledge base |
+| `role` | Role | IAM service role for the knowledge base |
 
-## Strategy Selection Guide
+## Region Support
 
-| Use Case | Parsing | Chunking |
-|----------|---------|----------|
-| Simple text docs | Default | Fixed-size |
-| PDFs with tables/images | BDA or FM | Hierarchical |
-| Long-form content | Default | Semantic |
-| Pre-chunked files | Default | None |
-| Technical manuals | FM | Hierarchical |
+Managed knowledge bases are available only in the Regions listed in `SUPPORTED_MANAGED_KB_REGIONS` in [infra/lib/config.ts](../../config.ts): `us-east-1`, `us-west-2`, `eu-west-1`, `eu-west-2`, `eu-central-1`, `ap-northeast-1`, and `ap-southeast-2`. The config loader rejects any other `region` when `knowledgeBases` is non-empty.

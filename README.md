@@ -14,7 +14,7 @@ RAPID is a config-driven monorepo blueprint for standing up agentic AI solutions
 |---|---|
 | **Multi-agent runtime** | Multiple containerized [Strands](https://strandsagents.com/) agents on [AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime.html), each with its own model, tools, and configuration |
 | **Persistent memory** | Cross-session [AgentCore Memory](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/memory.html) per agent, so conversations carry context |
-| **RAG / knowledge bases** | Drop documents in a directory; deploy creates an [Amazon Bedrock Knowledge Base](https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base.html) and ingests them. Re-ingest later with `make ingest-kb` |
+| **RAG / knowledge bases** | Drop documents in `knowledge-bases/{name}/`; deploy creates an [Amazon Bedrock managed knowledge base](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-build-managed.html) per entry (service-managed embedding, search, and reranking, no vector store to operate), and `make deploy` ingests the documents into it. Re-ingest later with `make ingest-kb` |
 | **MCP tool servers** | An extensible tool layer over the [Model Context Protocol](https://modelcontextprotocol.io/), where a tool is a Python function |
 | **Web frontend** | Optional Streamlit chat UI on [AWS Fargate](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html) with [Amazon Cognito](https://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html) auth, behind an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html) or [Amazon CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html). Off by default; `make ui` runs it locally instead |
 | **CI/CD pipelines** | Opt-in via `make enable-cicd` — path-based [AWS CodePipeline](https://docs.aws.amazon.com/codepipeline/latest/userguide/welcome.html) triggers rebuild and redeploy only the agent or MCP server you changed |
@@ -123,7 +123,7 @@ The shipped default (`frontendMode: none`) provisions nothing that bills by the 
 
 ## Licence and attribution
 
-Licensed under the Apache License, Version 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE). Copyright Amazon.com, Inc. or its affiliates.
+Licensed under the Apache License, Version 2.0 — see [LICENSE](LICENSE). Copyright Amazon.com, Inc. or its affiliates.
 
 Third-party dependency licences are not restated here; each subproject declares its own dependencies in its `pyproject.toml` (Python) or `package.json` (TypeScript), and those files are the authoritative record.
 

@@ -92,6 +92,20 @@ if [[ -z "${ACCOUNT_ID}" ]]; then
   exit 1
 fi
 
+# Fail before anything is built or deployed if git cannot authenticate to
+# CodeCommit; otherwise the push in Step 4 fails after the stack is deployed.
+if ! git config --get-all credential.helper | grep -q 'codecommit credential-helper' \
+   || [[ "$(git config --get --type=bool credential.UseHttpPath)" != "true" ]]; then
+  echo "ERROR: git is not configured to authenticate to CodeCommit." >&2
+  echo "       Run these once, then re-run 'make enable-cicd':" >&2
+  echo "" >&2
+  echo "         git config --global credential.helper '!aws codecommit credential-helper \$@'" >&2
+  echo "         git config --global credential.UseHttpPath true" >&2
+  echo "" >&2
+  echo "       Details: GETTING_STARTED.md → CI/CD Graduation → Before you enable it" >&2
+  exit 1
+fi
+
 ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
 
 # Read deployment prefix from config

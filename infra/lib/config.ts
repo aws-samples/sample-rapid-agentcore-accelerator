@@ -42,6 +42,12 @@ export interface AcceleratorConfig {
   knowledgeBases: KnowledgeBaseDefinition[];   // always populated (empty if no KBs defined)
 }
 
+/** Regions where Amazon Bedrock managed knowledge bases are available with service-managed models. */
+export const SUPPORTED_MANAGED_KB_REGIONS: readonly string[] = [
+  'us-east-1', 'us-west-2', 'eu-west-1', 'eu-west-2',
+  'eu-central-1', 'ap-northeast-1', 'ap-southeast-2',
+];
+
 const VALID_DEPLOYMENT_MODES: readonly string[] = ['local', 'pipeline'];
 const VALID_FRONTEND_MODES: readonly string[] = ['none', 'internal', 'public', 'cloudfront'];
 
@@ -326,7 +332,15 @@ export function loadAcceleratorConfig(repoRoot: string): AcceleratorConfig {
     }
   }
 
-  // 5b. Validate knowledge base names and references
+  // 5b. Validate knowledge base region, names and references
+  const trimmedRegion = region.trim();
+  if (knowledgeBases.length > 0 && !SUPPORTED_MANAGED_KB_REGIONS.includes(trimmedRegion)) {
+    throw new Error(
+      `Invalid config: "region" has value "${trimmedRegion}" but "knowledgeBases" requires a region ` +
+      `where managed knowledge bases are available: ${SUPPORTED_MANAGED_KB_REGIONS.join(', ')}. ` +
+      `Change "region" or remove "knowledgeBases". See docs/configuration.md for the full reference.`
+    );
+  }
   for (const kb of knowledgeBases) {
     if (!NAME_REGEX.test(kb.name)) {
       throw new Error(

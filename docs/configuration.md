@@ -19,7 +19,7 @@ The loader is [`infra/lib/config.ts`](../infra/lib/config.ts). It reads the file
 | `hostedZoneName` | string \| null | No | derived from `domainName` | The Route 53 hosted zone used for certificate validation and alias records. Derived by taking the last two labels of `domainName` (`agent.example.com` → `example.com`). Set it explicitly when your zone has three or more labels. `null` when `domainName` is unset. |
 | `agents` | list of mappings | Yes | — | One [agent entry](#agents) per AgentCore Runtime to deploy. Each entry also gets cross-session Memory, an ECR repository, and — in `pipeline` mode — its own CI/CD pipeline. Must contain at least one entry. |
 | `mcpServers` | list of mappings | Yes | — | One [MCP server entry](#mcpservers) per MCP AgentCore Runtime to deploy. Each entry also gets an ECR repository and, in `pipeline` mode, its own pipeline. |
-| `knowledgeBases` | list of mappings | No | `[]` | One [knowledge base entry](#knowledgebases) per Bedrock Knowledge Base to create, each with an S3 documents bucket and a vector index. Omit the key entirely if you want no knowledge bases. |
+| `knowledgeBases` | list of mappings | No | `[]` | One [knowledge base entry](#knowledgebases) per Amazon Bedrock managed knowledge base to create, each with an S3 documents bucket (the Docs_Bucket). Requires a [supported region](#knowledgebases). Omit the key entirely if you want no knowledge bases. |
 
 ### Required, optional, and gone
 
@@ -36,7 +36,7 @@ Three keys that older copies of `config.yaml` declared — `documentsBucketName`
 | `name` | string | Yes | — | Identifier for the agent. Kebab-case: lowercase letters, numbers, and hyphens, starting with a letter, 1–63 characters. Must be unique across `agents`. Drives the runtime name and the default source directory. |
 | `sourceDir` | string | No | `agent/{name}/src` | Path to the agent source, relative to the repository root. Must exist on disk. |
 | `modelId` | string | No | top-level `modelId` | Bedrock model for this agent, injected as the `MODEL_ID` environment variable. |
-| `knowledgeBase` | string | No | — | Name of an entry in `knowledgeBases`. Injects `KNOWLEDGE_BASE_ID` and grants the agent retrieve access. A name that is not defined is an error. |
+| `knowledgeBase` | string | No | — | Name of an entry in `knowledgeBases`. Injects the `KNOWLEDGE_BASE_ID` environment variable and grants the agent `bedrock:Retrieve` on that knowledge base only. A name that is not defined is an error. |
 | `mcpServers` | list of strings | No | all defined MCP servers | Names of entries in `mcpServers` this agent may invoke. Maximum 10 per agent. The agent is granted invoke permission on exactly these runtimes and no others. A name that is not defined is an error. |
 
 ## `mcpServers[]`
@@ -48,10 +48,46 @@ Three keys that older copies of `config.yaml` declared — `documentsBucketName`
 
 ## `knowledgeBases[]`
 
+Each entry creates an Amazon Bedrock managed knowledge base and a documents bucket (the Docs_Bucket, named `{deploymentPrefix}-kb-{name}-{account}-{region}`). Amazon Bedrock owns the storage, embedding, reranking, parsing, and chunking, so there is nothing else to configure.
+
 | Field | Type | Required | Default | Effect |
 |---|---|---|---|---|
 | `name` | string | Yes | — | Identifier for the knowledge base. Same kebab-case rule, unique across `knowledgeBases`. Agents reference this value in their `knowledgeBase` field. |
-| `sourceDir` | string | No | `knowledge-bases/{name}` | Directory of documents uploaded to the knowledge base bucket on deploy. Must exist on disk. Re-upload later with `make ingest-kb KB={name}`. |
+| `sourceDir` | string | No | `knowledge-bases/{name}` | Directory of documents to upload to the `kb-source-docs/` prefix of the Docs_Bucket and ingest into the knowledge base. Must exist on disk. `make deploy` uploads and ingests it after the stack deploys; re-run later with `make ingest-kb KB={name}`. |
+
+### Supported regions
+
+When `knowledgeBases` has at least one entry, `region` must be one of the regions where managed knowledge bases are available:
+
+- `us-east-1`
+- `us-west-2`
+- `eu-west-1`
+- `eu-west-2`
+- `eu-central-1`
+- `ap-northeast-1`
+- `ap-southeast-2`
+
+Any other value fails validation before any resource is provisioned. With no `knowledgeBases`, `region` is not restricted by this rule.
+
+### Upload and ingestion
+
+- `make deploy` deploys the stack, writes `.rapid/outputs.json`, then uploads and ingests every knowledge base's `sourceDir`.
+- `make ingest-kb` does the same on demand; pass `KB={name}` to target one knowledge base.
+- With `deploymentMode: pipeline`, the infra pipeline deploys the stack only. It does not upload or ingest documents. Run `make ingest-kb` to upload and ingest them.
+
+By default, ingestion waits for each job to reach `COMPLETE` or `FAILED`. To start ingestion jobs without waiting, set `NO_WAIT=1`:
+
+```bash
+make deploy NO_WAIT=1              # Deploy and start ingestion jobs, don't wait
+make ingest-kb NO_WAIT=1           # Start all ingestion jobs, don't wait
+make ingest-kb KB=support-docs NO_WAIT=1  # Start one ingestion job, don't wait
+```
+
+In no-wait mode, the command starts the job, prints its ID, and exits immediately without polling its status. Failures after the job starts are not reported by the command — check the job status with the printed `aws bedrock-agent get-ingestion-job` command or the Amazon Bedrock console (Knowledge bases → {name} → data source → sync history). Failures during sync, data source listing, data source wait, or starting the job still exit non-zero.
+
+### Injected variable
+
+An agent that sets `knowledgeBase` receives `KNOWLEDGE_BASE_ID` as an environment variable, set by CDK to the ID of the referenced knowledge base. Agent source reads it and never hardcodes an ID. An agent that omits `knowledgeBase` receives no `KNOWLEDGE_BASE_ID` and no retrieve permission.
 
 ---
 
@@ -97,6 +133,7 @@ The loader raises a descriptive error, before any construct is created, for each
 - A name that is not kebab-case, or a duplicate name within `agents`, `mcpServers`, or `knowledgeBases`.
 - An agent referencing an MCP server or a knowledge base that is not defined, or referencing more than 10 MCP servers.
 - A resolved `sourceDir` that does not exist on disk, for any agent, MCP server, or knowledge base.
+- A `region` outside the [supported regions](#supported-regions) when `knowledgeBases` has at least one entry.
 
 ---
 
@@ -134,8 +171,13 @@ domainName:                      # e.g. agent.example.com
 # last two labels (agent.example.com -> example.com).
 hostedZoneName:
 
-# Knowledge bases. Each gets an S3 bucket and a Bedrock Knowledge Base.
-# Documents in knowledge-bases/{name}/ are uploaded on deploy.
+# Knowledge bases. Each entry creates a managed Bedrock Knowledge Base and a
+# documents bucket. `make deploy` and `make ingest-kb` upload the documents in
+# knowledge-bases/{name}/ and ingest them; the infra pipeline (deploymentMode:
+# pipeline) deploys the stack only and does not upload or ingest.
+# Using knowledgeBases requires region to be one of: us-east-1, us-west-2,
+# eu-west-1, eu-west-2, eu-central-1, ap-northeast-1, ap-southeast-2.
+# Agents reference a KB by name to get KNOWLEDGE_BASE_ID injected.
 knowledgeBases:
   - name: support-docs           # sourceDir defaults to knowledge-bases/{name}
   - name: it-docs

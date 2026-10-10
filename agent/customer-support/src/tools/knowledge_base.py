@@ -67,39 +67,41 @@ def _retrieve_from_kb(
             knowledgeBaseId=knowledge_base_id,
             retrievalQuery={"text": query},
             retrievalConfiguration={
-                "vectorSearchConfiguration": {
+                "managedSearchConfiguration": {
                     "numberOfResults": number_of_results
                 }
             }
         )
         
-        results = response.get("retrievalResults", [])
-        
-        if not results:
-            return "No relevant information found in the knowledge base."
-        
-        # Format results
-        formatted_results = []
-        for i, result in enumerate(results, 1):
-            content = result.get("content", {})
-            text = content.get("text", "No text content")
-            score = result.get("score", 0)
-            location = result.get("location", {})
-            
-            # Get source location
-            source = "Unknown source"
-            if location.get("type") == "S3":
-                source = location.get("s3Location", {}).get("uri", source)
-            elif location.get("type") == "WEB":
-                source = location.get("webLocation", {}).get("url", source)
-            
-            formatted_results.append(
-                f"[Result {i}] (Score: {score:.3f})\n"
-                f"Source: {source}\n"
-                f"Content: {text}\n"
-            )
-        
-        return "\n---\n".join(formatted_results)
+        return _format_results(response.get("retrievalResults", []))
         
     except Exception as e:
         return f"Error retrieving from knowledge base: {str(e)}"
+
+
+def _format_results(results: list[dict]) -> str:
+    """Format Retrieve results as numbered blocks separated by '---' lines."""
+    if not results:
+        return "No relevant information found in the knowledge base."
+    
+    formatted_results = []
+    for i, result in enumerate(results, 1):
+        content = result.get("content", {})
+        text = content.get("text", "No text content")
+        score = result.get("score", 0)
+        location = result.get("location", {})
+        
+        # Get source location
+        source = "Unknown source"
+        if location.get("type") == "S3":
+            source = location.get("s3Location", {}).get("uri", source)
+        elif location.get("type") == "WEB":
+            source = location.get("webLocation", {}).get("url", source)
+        
+        formatted_results.append(
+            f"[Result {i}] (Score: {score:.3f})\n"
+            f"Source: {source}\n"
+            f"Content: {text}\n"
+        )
+    
+    return "\n---\n".join(formatted_results)

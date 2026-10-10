@@ -11,11 +11,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import { Construct } from 'constructs';
-import {
-  BedrockKnowledgeBase,
-  ChunkingStrategy,
-  ParsingStrategy,
-} from '../constructs/bedrock-knowledge-base';
+import { BedrockKnowledgeBase } from '../constructs/bedrock-knowledge-base';
 import { AgentCoreAgent } from '../constructs/agentcore-agent';
 import { AgentCoreMCPServer } from '../constructs/agentcore-mcp-server';
 import { AgentCorePipeline } from '../constructs/agentcore-pipeline';
@@ -95,40 +91,17 @@ export class AgentCoreStack extends cdk.Stack {
       });
       this.kbBuckets.set(kbDef.name, docsBucket);
 
-      // S3 bucket for supplemental data
-      const supplementalBucket = new s3.Bucket(this, `${pascalName}SupplementalBucket`, {
-        bucketName: `${prefix}-kb-${kbDef.name}-supplemental-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
-        encryption: s3.BucketEncryption.S3_MANAGED,
-        blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-        enforceSSL: true,
-        removalPolicy: cdk.RemovalPolicy.DESTROY,
-        autoDeleteObjects: true,
-        serverAccessLogsBucket: accessLogsBucket,
-        serverAccessLogsPrefix: `kb-${kbDef.name}-supplemental/`,
-      });
-
-      // Bedrock Knowledge Base
-      const kb = new BedrockKnowledgeBase(this, `${pascalName}KnowledgeBase`, {
+      // Bedrock Managed Knowledge Base (new construct ID so CloudFormation replaces the
+      // legacy KB in dependency order; see design.md "Upgrade Behavior")
+      const kb = new BedrockKnowledgeBase(this, `${pascalName}ManagedKnowledgeBase`, {
         knowledgeBaseName: `${prefix}-kb-${kbDef.name}`,
         description: `Knowledge base: ${kbDef.name}`,
-        supplementalDataBucket: supplementalBucket,
       });
 
       kb.addS3DataSource({
         dataSourceName: 'managed-ingestion',
         bucket: docsBucket,
         inclusionPrefixes: ['kb-source-docs/'],
-        parsingConfig: {
-          strategy: ParsingStrategy.NONE,
-        },
-        chunkingConfig: {
-          strategy: ChunkingStrategy.HIERARCHICAL,
-          hierarchicalConfig: {
-            parentMaxTokens: 1500,
-            childMaxTokens: 300,
-            overlapTokens: 60,
-          },
-        },
       });
 
       kb.knowledgeBase.node.addDependency(docsBucket);
@@ -264,11 +237,16 @@ export class AgentCoreStack extends cdk.Stack {
       }
 
       // Add KNOWLEDGE_BASE_ID if this agent references a knowledge base
+      const agentKb = agentDef.knowledgeBase
+        ? this.knowledgeBases.get(agentDef.knowledgeBase)
+        : undefined;
       if (agentDef.knowledgeBase) {
-        const kb = this.knowledgeBases.get(agentDef.knowledgeBase);
-        if (kb) {
-          envVars.KNOWLEDGE_BASE_ID = kb.knowledgeBaseId;
+        if (!agentKb) {
+          throw new Error(
+            `Agent "${agentDef.name}" references knowledge base "${agentDef.knowledgeBase}" which is not defined in knowledgeBases`,
+          );
         }
+        envVars.KNOWLEDGE_BASE_ID = agentKb.knowledgeBaseId;
       }
 
       let agent: AgentCoreAgent;
@@ -299,11 +277,8 @@ export class AgentCoreStack extends cdk.Stack {
       }
 
       // Grant knowledge base retrieve access
-      if (agentDef.knowledgeBase) {
-        const kb = this.knowledgeBases.get(agentDef.knowledgeBase);
-        if (kb) {
-          kb.grantRetrieve(agent.runtime);
-        }
+      if (agentKb) {
+        agentKb.grantRetrieve(agent.runtime);
       }
 
       // Grant ECR permissions to the agent execution role

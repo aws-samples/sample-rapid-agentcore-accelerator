@@ -4,6 +4,21 @@ All notable changes to RAPID are recorded here. The format follows [Keep a Chang
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking: knowledge bases are now Amazon Bedrock managed knowledge bases (type `MANAGED`).** Each `knowledgeBases[]` entry in `config.yaml` keeps its meaning (`name`, `sourceDir`) and agents still receive `KNOWLEDGE_BASE_ID`, but the resource behind it is replaced. S3 Vectors is no longer used as a knowledge base store; Amazon Bedrock now owns the datastore, embedding, reranking, parsing, and chunking, and the vector bucket, vector index, and supplemental-data bucket are gone.
+  - **The knowledge base ID changes.** Anything that stored or hardcoded the old ID must read the new one from `.rapid/outputs.json` or from the `KNOWLEDGE_BASE_ID` environment variable.
+  - **Vectors are not migrated.** The new knowledge base starts empty. `make deploy` or `make ingest-kb` repopulates it from the documents under `knowledge-bases/{name}/`.
+  - **Affected usage.** Update any of the following in code you added on top of RAPID:
+    - Code that calls `retrieve` with `vectorSearchConfiguration`. A managed knowledge base rejects it with a `ValidationException`; use `managedSearchConfiguration`. The shipped `retrieve_from_knowledge_base` tools are already updated and keep their signature and output format.
+    - Code that imports `ParsingStrategy` or `ChunkingStrategy` from the `BedrockKnowledgeBase` construct. Both exports are removed, and `addS3DataSource` no longer accepts parsing or chunking options.
+    - Code that passes the `supplementalDataBucket` prop. The prop is removed, along with `embeddingModelId` and `vectorDimension`.
+  - **Upgrading an existing deployment.** Updating the stack in place replaces the knowledge base and its data source, and the old resources are deleted after the new ones exist. If the update fails, CloudFormation rolls back to the previous state. The fallback is `make destroy` followed by `make deploy`.
+- **`make deploy` now uploads and ingests documents.** After the stack deploys, it runs `scripts/ingest-kb-assets.sh` for every knowledge base, so the knowledge base is populated when the command returns. A failed ingestion makes `make deploy` exit non-zero but leaves the deployed stack in place. With `deploymentMode: pipeline`, the pipeline still deploys the stack only; run `make ingest-kb` to upload and ingest documents.
+  - **Opt out with `NO_WAIT=1`.** Set `NO_WAIT=1` to start ingestion jobs without waiting for completion (e.g., `make deploy NO_WAIT=1` or `make ingest-kb KB=support-docs NO_WAIT=1`). In no-wait mode, the script starts each job and exits immediately; job failures after startup are not reported. See [docs/configuration.md](docs/configuration.md) for details.
+- **`knowledgeBases` is restricted to seven regions.** When `knowledgeBases` has at least one entry, `region` must be one of `us-east-1`, `us-west-2`, `eu-west-1`, `eu-west-2`, `eu-central-1`, `ap-northeast-1`, or `ap-southeast-2`; the configuration loader raises an error otherwise. Configurations without knowledge bases are unaffected.
+- **`aws-cdk-lib` is pinned to 2.262.0** (previously 2.258.0), a version whose `CfnKnowledgeBase` and `CfnDataSource` types include the managed knowledge base properties. Run `npm install` in `infra/` after pulling.
+
 ### Fixed
 
 - **`make logs` works again.** `scripts/logs.sh` read a top-level `agentRuntimeArn` that `.rapid/outputs.json` never contains, so it always exited with "agentRuntimeArn is empty". It now takes the agent name like `chat.sh` (`make logs AGENT=it-helpdesk`, defaulting to `customer-support`), reads `agents.<name>.runtimeArn`, and lists the deployed agents when the name is unknown.

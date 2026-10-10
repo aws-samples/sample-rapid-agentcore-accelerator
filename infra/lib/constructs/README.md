@@ -51,7 +51,7 @@ const pipeline = new AgentCorePipeline(this, 'Pipeline', {
 
 ### BedrockKnowledgeBase
 
-Creates a Bedrock Knowledge Base backed by S3Vectors for RAG applications with advanced parsing and chunking options.
+Creates an Amazon Bedrock managed knowledge base with a data source on an S3 documents bucket.
 
 See [bedrock-knowledge-base/README.md](./bedrock-knowledge-base/README.md) for detailed documentation.
 

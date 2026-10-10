@@ -199,13 +199,10 @@ const pipeline = new MultimodalProcessingPipeline(this, 'DocPipeline', {
 
 ### Knowledge Base Integration
 
-Connect processed documents to a Bedrock Knowledge Base for RAG queries. The integration is done outside the construct, giving you full control over chunking, parsing, and other data source settings:
+Connect processed documents to a Bedrock Knowledge Base for RAG queries. The integration is done outside the construct. The managed knowledge base applies its own chunking, so the data source only needs the bucket and prefix:
 
 ```typescript
-import { 
-  BedrockKnowledgeBase, 
-  ChunkingStrategy 
-} from '../constructs/bedrock-knowledge-base';
+import { BedrockKnowledgeBase } from '../constructs/bedrock-knowledge-base';
 
 // Create a knowledge base
 const knowledgeBase = new BedrockKnowledgeBase(this, 'KB', {
@@ -221,19 +218,10 @@ const pipeline = new MultimodalProcessingPipeline(this, 'DocPipeline', {
 });
 
 // Wire the pipeline RAG-ready output to the knowledge base
-// You have full control over chunking, parsing, and other settings
 knowledgeBase.addS3DataSource({
   dataSourceName: 'processed-documents',
   bucket: pipeline.ragReadyBucket,
   inclusionPrefixes: [pipeline.ragReadyPrefix],
-  chunkingConfig: {
-    strategy: ChunkingStrategy.HIERARCHICAL,
-    hierarchicalConfig: {
-      parentMaxTokens: 1500,
-      childMaxTokens: 300,
-      overlapTokens: 60,
-    },
-  },
 });
 ```
 

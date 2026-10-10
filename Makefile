@@ -5,6 +5,8 @@
 AGENT ?= customer-support
 # Optional: target a specific knowledge base (override with: make ingest-kb KB=it-docs)
 KB ?=
+# Optional: skip waiting for ingestion job completion (override with: make ingest-kb NO_WAIT=1)
+NO_WAIT ?=
 # Optional: extra flags passed through to scripts/chat.sh (e.g. CHAT_ARGS=--local)
 CHAT_ARGS ?=
 
@@ -17,12 +19,13 @@ doctor:               ## Check prerequisites before deploying
 install:              ## Install infra (CDK) npm dependencies
 	cd infra && npm install
 
-deploy: install       ## Deploy the AgentCoreStack from config.yaml
+deploy: install       ## Deploy the stack from config.yaml, then ingest KB documents
 	cd infra && npx cdk deploy --all --require-approval never --outputs-file /tmp/cdk-outputs.json
 	./scripts/write_outputs.sh
+	./scripts/ingest-kb-assets.sh $(if $(NO_WAIT),--no-wait)
 
-ingest-kb:            ## Upload KB documents to S3 and start ingestion. Use KB=name for one KB.
-	./scripts/ingest-kb-assets.sh $(KB)
+ingest-kb:            ## Upload KB documents to S3 and start ingestion. Use KB=name for one KB, NO_WAIT=1 to skip polling.
+	./scripts/ingest-kb-assets.sh $(if $(NO_WAIT),--no-wait) $(KB)
 
 chat:                 ## Chat with the deployed agent (streaming). Use AGENT=name to pick agent.
 	./scripts/chat.sh $(AGENT) --stream $(CHAT_ARGS)

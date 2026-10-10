@@ -54,8 +54,12 @@ domainName:                      # e.g. agent.example.com
 # your hosted zone has three or more labels (e.g. eu.example.com).
 hostedZoneName:
 
-# Knowledge bases. Each gets an S3 bucket and a Bedrock Knowledge Base.
-# Documents in knowledge-bases/{name}/ are uploaded on deploy.
+# Knowledge bases. Each entry creates a managed Bedrock Knowledge Base and a
+# documents bucket. `make deploy` and `make ingest-kb` upload the documents in
+# knowledge-bases/{name}/ and ingest them; the infra pipeline (deploymentMode:
+# pipeline) deploys the stack only and does not upload or ingest.
+# Using knowledgeBases requires region to be one of: us-east-1, us-west-2,
+# eu-west-1, eu-west-2, eu-central-1, ap-northeast-1, ap-southeast-2.
 # Agents reference a KB by name to get KNOWLEDGE_BASE_ID injected.
 knowledgeBases:
   - name: support-docs           # sourceDir defaults to knowledge-bases/{name}
