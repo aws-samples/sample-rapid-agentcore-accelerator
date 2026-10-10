@@ -6,51 +6,70 @@
 # ============================================================================
 
 #
-# logs.sh — Tail the deployed agent runtime CloudWatch logs
+# logs.sh — Tail a deployed agent runtime's CloudWatch logs
 #
-# Reads the agent runtime ARN from .rapid/outputs.json, derives the
-# CloudWatch log group name from the runtime identity, and tails the logs.
+# Reads the runtime ARN for the named agent from .rapid/outputs.json, derives
+# the CloudWatch log group from the runtime ID, and tails it.
+#
+# Usage: scripts/logs.sh <agent>
 #
 set -euo pipefail
 
-# Determine repo root from the script's location
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-
 OUTPUTS_FILE="${REPO_ROOT}/.rapid/outputs.json"
 
-# --- Validate outputs file exists ---
-if [[ ! -f "${OUTPUTS_FILE}" ]]; then
-  echo "ERROR: Outputs file not found at ${OUTPUTS_FILE}" >&2
-  echo "       Run 'make deploy' first to generate deploy outputs." >&2
+usage() {
+  echo "Usage: scripts/logs.sh <agent>"
+  echo ""
+  echo "  <agent>  Agent name as it appears in config.yaml (e.g. customer-support)"
+  echo ""
+  echo "Examples:"
+  echo "  scripts/logs.sh it-helpdesk"
+  echo "  make logs AGENT=it-helpdesk"
+}
+
+if [[ $# -ne 1 ]]; then
+  usage >&2
+  exit 1
+fi
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+  usage
+  exit 0
+fi
+AGENT_NAME="$1"
+
+if ! command -v jq &>/dev/null; then
+  echo "ERROR: jq is required. Install jq and try again." >&2
   exit 1
 fi
 
-# --- Extract agent runtime ARN ---
-AGENT_RUNTIME_ARN=$(jq -r '.agentRuntimeArn // ""' "${OUTPUTS_FILE}")
+if [[ ! -r "${OUTPUTS_FILE}" ]]; then
+  echo "ERROR: Outputs not found at ${OUTPUTS_FILE} — run 'make deploy' first." >&2
+  exit 1
+fi
 
+AGENT_RUNTIME_ARN=$(jq -r --arg name "${AGENT_NAME}" \
+  '.agents[$name].runtimeArn // empty' "${OUTPUTS_FILE}")
+
+# No fallback to "the first agent": tailing a different agent's logs than the
+# one asked for is worse than failing.
 if [[ -z "${AGENT_RUNTIME_ARN}" ]]; then
-  echo "ERROR: agentRuntimeArn is empty in ${OUTPUTS_FILE}" >&2
-  echo "       Run 'make deploy' first to deploy the agent runtime." >&2
+  echo "ERROR: no deployed runtime for agent \"${AGENT_NAME}\" in .rapid/outputs.json." >&2
+  echo "" >&2
+  echo "Agents present in outputs:" >&2
+  jq -r '.agents | keys[] | "  " + .' "${OUTPUTS_FILE}" >&2 2>/dev/null \
+    || echo "  (none)" >&2
   exit 1
 fi
 
-# --- Derive runtime name from ARN ---
-# ARN format: arn:aws:bedrock-agentcore:<region>:<account>:runtime/<runtime-name>
-RUNTIME_NAME="${AGENT_RUNTIME_ARN##*/}"
-RUNTIME_REGION=$(echo "$AGENT_RUNTIME_ARN" | cut -d: -f4)
+# ARN format: arn:aws:bedrock-agentcore:<region>:<account>:runtime/<runtime-id>
+RUNTIME_ID="${AGENT_RUNTIME_ARN##*/}"
+RUNTIME_REGION=$(echo "${AGENT_RUNTIME_ARN}" | cut -d: -f4)
+LOG_GROUP="/aws/bedrock-agentcore/runtimes/${RUNTIME_ID}-DEFAULT"
 
-if [[ -z "${RUNTIME_NAME}" ]]; then
-  echo "ERROR: Could not extract runtime name from ARN: ${AGENT_RUNTIME_ARN}" >&2
-  exit 1
-fi
-
-# --- Derive CloudWatch log group ---
-LOG_GROUP="/aws/bedrock-agentcore/runtimes/${RUNTIME_NAME}-DEFAULT"
-
-echo "Tailing logs for runtime: ${RUNTIME_NAME}"
+echo "Tailing logs for agent: ${AGENT_NAME} (${RUNTIME_ID})"
 echo "Log group: ${LOG_GROUP}"
 echo "---"
 
-# --- Tail the logs ---
 aws logs tail "${LOG_GROUP}" --follow --region "${RUNTIME_REGION}"

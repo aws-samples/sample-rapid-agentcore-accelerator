@@ -30,8 +30,8 @@ chat:                 ## Chat with the deployed agent (streaming). Use AGENT=nam
 docker-run:           ## Build and run an agent container locally. Use AGENT=name to pick agent.
 	./scripts/docker-run.sh $(AGENT) --build
 
-logs:                 ## Tail the deployed agent runtime logs
-	./scripts/logs.sh
+logs:                 ## Tail the deployed agent runtime logs. Use AGENT=name to pick agent.
+	./scripts/logs.sh $(AGENT)
 
 ui:                   ## Run the Streamlit frontend locally against the deployed agent
 	./frontend/local/run_local.sh

@@ -2,6 +2,12 @@
 
 All notable changes to RAPID are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`make logs` works again.** `scripts/logs.sh` read a top-level `agentRuntimeArn` that `.rapid/outputs.json` never contains, so it always exited with "agentRuntimeArn is empty". It now takes the agent name like `chat.sh` (`make logs AGENT=it-helpdesk`, defaulting to `customer-support`), reads `agents.<name>.runtimeArn`, and lists the deployed agents when the name is unknown.
+
 ## [1.0.0] - 2026-08-20
 
 Initial public release.
