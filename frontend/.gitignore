@@ -1,0 +1,7 @@
+/node_modules
+/.next/
+/out/
+/coverage
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*

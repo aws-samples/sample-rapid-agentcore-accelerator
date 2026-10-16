@@ -15,7 +15,7 @@ both the missing prerequisite and the command that fixes it.
 
 | Requirement | Value | Notes |
 |---|---|---|
-| Node.js | **18 or newer** | Needed for the AWS CDK toolchain under `infra/`. `make doctor` fails below major version 18. |
+| Node.js | **20.9 or newer** | Needed for the AWS CDK toolchain under `infra/` and the Next.js chat UI under `frontend/`. `make doctor` fails below 20.9. |
 | Python | **3.12** | Pinned by the `.python-version` file in each Python subproject. `uv` manages the interpreter; `uv python install 3.12` installs it. |
 | Container architecture | **`linux/arm64`** | Amazon Bedrock AgentCore Runtime accepts ARM64 images only. Native on Apple Silicon; on x86/amd64 hosts it is a cross-architecture build — see [Cross-platform build issues](#cross-platform-build-issues-x86--amd64-hosts). |
 

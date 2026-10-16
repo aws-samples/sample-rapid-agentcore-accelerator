@@ -32,7 +32,7 @@ export interface CloudFrontFrontendDomainConfig {
 export interface CloudFrontFrontendProps {
   /** VPC containing the internal ALB (required) */
   readonly vpc: ec2.IVpc;
-  /** The internal ALB from StreamlitFrontend (required) */
+  /** The internal ALB from ChatFrontend (required) */
   readonly alb: elbv2.IApplicationLoadBalancer;
   /** Optional custom domain configuration */
   readonly domain?: CloudFrontFrontendDomainConfig;
@@ -48,7 +48,7 @@ export interface CloudFrontFrontendProps {
  * Key features:
  * - VPC Origin for private ALB access (no public ALB needed)
  * - HTTPS termination at CloudFront edge
- * - Caching disabled (Streamlit is fully dynamic)
+ * - Caching disabled (the chat app is fully dynamic)
  * - Optional custom domain with ACM certificate and Route 53 alias
  * - RemovalPolicy.DESTROY for easy workshop cleanup
  */
@@ -75,8 +75,9 @@ export class CloudFrontFrontend extends Construct {
     const vpcOrigin = origins.VpcOrigin.withApplicationLoadBalancer(props.alb, {
       protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
       httpPort: 80,
-      // Default read timeout (30s) is sufficient — once the WebSocket handshake
-      // completes within 30s, CloudFront keeps the connection open indefinitely.
+      // The chat route streams SSE with a keep-alive every 15s, so a 60s read
+      // timeout (the maximum without a quota increase) is never reached between bytes.
+      readTimeout: cdk.Duration.seconds(60),
       keepaliveTimeout: cdk.Duration.seconds(30),
     });
 
@@ -89,7 +90,7 @@ export class CloudFrontFrontend extends Construct {
       });
     }
 
-    // Create CloudFront Distribution with no caching (Streamlit is fully dynamic)
+    // Create CloudFront Distribution with no caching (the chat app is fully dynamic)
     this.distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultBehavior: {
         origin: vpcOrigin,

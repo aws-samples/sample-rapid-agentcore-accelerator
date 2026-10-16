@@ -31,7 +31,7 @@ agent/{name}/src/         Agent source — main.py, tools/, utils/, Dockerfile
 agent/{name}/evals/       Optional eval suite (customer-support only)
 mcp/{name}/src/           MCP server source (FastMCP) + Dockerfile
 knowledge-bases/{name}/   Documents uploaded to that knowledge base on deploy
-frontend/src/             Streamlit chat UI
+frontend/                 Next.js chat UI (shadcn/ui + AI SDK)
 infra/lib/config.ts       Config parser and validator for config.yaml
 infra/lib/stacks/         Stack definitions — the composition point
 infra/lib/constructs/     Reusable L3 constructs (one folder each)

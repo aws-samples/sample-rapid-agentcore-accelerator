@@ -27,6 +27,7 @@ from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from bedrock_agentcore.memory.integrations.strands.config import AgentCoreMemoryConfig, RetrievalConfig
 from bedrock_agentcore.memory.integrations.strands.session_manager import AgentCoreMemorySessionManager
 from strands import Agent
+from strands.models import BedrockModel
 from strands.session.file_session_manager import FileSessionManager
 
 from tools.knowledge_base import create_kb_retrieval_tool
@@ -68,6 +69,23 @@ performing sensitive operations like password resets.
 """
 
 MODEL_ID = os.environ.get("MODEL_ID")
+
+# Reasoning display, injected by CDK from config.yaml `showReasoning`.
+# "summarized" streams readable reasoning to the UI; "off" sends no thinking
+# config and leaves the model at its defaults (use for non-Claude models).
+THINKING_DISPLAY = os.environ.get("THINKING_DISPLAY", "summarized")
+
+
+def create_model() -> BedrockModel:
+    """Create the Bedrock model, with adaptive thinking unless THINKING_DISPLAY is "off"."""
+    kwargs: dict = {}
+    if MODEL_ID:
+        kwargs["model_id"] = MODEL_ID
+    if THINKING_DISPLAY != "off":
+        kwargs["additional_request_fields"] = {
+            "thinking": {"type": "adaptive", "display": THINKING_DISPLAY}
+        }
+    return BedrockModel(**kwargs)
 
 
 def resolve_mcp_arns() -> list[str]:
@@ -127,7 +145,7 @@ def create_agent(session_id: str, actor_id: str) -> Agent:
     
     return Agent(
         system_prompt=SYSTEM_PROMPT,
-        model=MODEL_ID,
+        model=create_model(),
         session_manager=session_manager,
         tools=tools,
     )

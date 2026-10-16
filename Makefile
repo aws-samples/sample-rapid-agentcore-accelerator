@@ -36,7 +36,7 @@ docker-run:           ## Build and run an agent container locally. Use AGENT=nam
 logs:                 ## Tail the deployed agent runtime logs. Use AGENT=name to pick agent.
 	./scripts/logs.sh $(AGENT)
 
-ui:                   ## Run the Streamlit frontend locally against the deployed agent
+ui:                   ## Run the chat frontend on http://localhost:3000 against the deployed agents
 	./frontend/local/run_local.sh
 
 enable-cicd:          ## Graduation step: set up CodeCommit + pipelines (opt-in)

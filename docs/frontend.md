@@ -1,6 +1,6 @@
 # Frontend Modes
 
-The `frontendMode` key in [`config.yaml`](../config.yaml) controls whether a Streamlit chat UI is deployed alongside your agents, how it is reachable, and how users authenticate to it.
+The `frontendMode` key in [`config.yaml`](../config.yaml) controls whether the chat UI is deployed alongside your agents, how it is reachable, and how users authenticate to it. The UI is a Next.js app in [`frontend/`](../frontend/README.md): it streams the agent's answer, shows its reasoning trace in a collapsible panel, and renders each tool call as a card with its status, input, and result.
 
 The shipped default is `none`. It provisions **no network-exposed endpoint** and nothing that bills while idle. Every other value provisions a VPC with a NAT gateway, an Application Load Balancer, and a Fargate task — all three bill by the hour from creation until deletion, whether or not anyone uses the UI. Read [cost and teardown](cost-and-teardown.md) before switching.
 
@@ -13,7 +13,7 @@ The shipped default is `none`. It provisions **no network-exposed endpoint** and
 | `none` (default) | None | Nothing | No endpoint is created | Not applicable — you reach the agent with your own AWS credentials |
 | `internal` | VPC (2 AZs), 1 NAT gateway, internal ALB, Fargate service | NAT gateway, ALB, Fargate task | Internal ALB, reachable only from inside the VPC | **None.** Network reachability is the only boundary |
 | `public` | VPC (2 AZs), 1 NAT gateway, internet-facing ALB with HTTPS, ACM certificate, Route 53 alias record, Fargate service, Cognito user pool | NAT gateway, ALB, Fargate task | Public HTTPS endpoint on your domain | Cognito, enforced at the ALB listener |
-| `cloudfront` | VPC (2 AZs), 1 NAT gateway, private ALB, Fargate service, CloudFront distribution, Cognito user pool | NAT gateway, ALB, Fargate task, CloudFront | Public HTTPS endpoint via CloudFront; the ALB accepts traffic only from CloudFront's managed prefix list | Cognito — enforced in the Streamlit app without a custom domain, at the ALB listener with one |
+| `cloudfront` | VPC (2 AZs), 1 NAT gateway, private ALB, Fargate service, CloudFront distribution, Cognito user pool | NAT gateway, ALB, Fargate task, CloudFront | Public HTTPS endpoint via CloudFront; the ALB accepts traffic only from CloudFront's managed prefix list | Cognito — enforced in the app without a custom domain, at the ALB listener with one |
 
 The Cognito user pool itself has no hourly charge; it is billed on monthly active users. See the [per-mode cost table](cost-and-teardown.md#per-mode-summary) for the billing basis of each resource and links to the AWS pricing pages.
 
@@ -31,10 +31,10 @@ Two ways to talk to the agent:
 
 ```bash
 make chat          # CLI, streaming, uses your AWS credentials
-make ui            # Streamlit on http://localhost:8501, against the deployed agents
+make ui            # chat UI on http://localhost:3000, against the deployed agents
 ```
 
-`make ui` reads the runtime ARNs from `.rapid/outputs.json` (written by `make deploy`, machine-local, untracked). To point it at an agent running on your own machine instead, copy `frontend/local/.env.example` to `.env` in the same directory and set `LOCAL_AGENT_URL=http://localhost:8080`.
+`make ui` reads every agent's runtime ARN from `.rapid/outputs.json` (written by `make deploy`, machine-local, untracked). To point it at an agent running on your own machine instead, copy `frontend/local/.env.example` to `.env` in the same directory and set `LOCAL_AGENT_URL=http://localhost:8080`.
 
 ## `internal`
 
@@ -42,7 +42,7 @@ make ui            # Streamlit on http://localhost:8501, against the deployed ag
 frontendMode: internal
 ```
 
-An internal-facing ALB in front of the Streamlit app on Fargate (ARM64, 0.25 vCPU, 0.5 GB, one task). The ALB security group admits HTTP on port 80 from the VPC CIDR only, so you reach it over a VPN, a Direct Connect link, a bastion host, or a peered VPC.
+An internal-facing ALB in front of the chat app on Fargate (ARM64, 0.25 vCPU, 0.5 GB, one task). The ALB security group admits HTTP on port 80 from the VPC CIDR only, so you reach it over a VPN, a Direct Connect link, a bastion host, or a peered VPC.
 
 **There is no authentication.** The app treats every request as an anonymous internal user. Anyone with a network path to the VPC has full use of your agents. Use this mode only where the network boundary is itself the access control you want.
 
@@ -55,7 +55,7 @@ domainName: agent.example.com
 
 An internet-facing ALB with an HTTPS listener, a DNS-validated ACM certificate, and a Route 53 alias record. `domainName` is required. The hosted zone is derived from the last two labels of the domain (`agent.example.com` → `example.com`) and must already exist in your account; set `hostedZoneName` explicitly if your zone has three or more labels.
 
-Authentication is enforced **at the load balancer**. The HTTPS listener carries an `AuthenticateCognitoAction` on `/*`, so an unauthenticated request is redirected to the Cognito hosted UI and never reaches the Streamlit container. Port 80 redirects to 443. The app reads the authenticated identity from the ALB's OIDC headers.
+Authentication is enforced **at the load balancer**. The HTTPS listener carries an `AuthenticateCognitoAction` on `/*`, so an unauthenticated request is redirected to the Cognito managed login page and never reaches the app container. Port 80 redirects to 443. The app verifies the ALB-signed `x-amzn-oidc-data` header (ES256, against the ALB's regional public key) and uses its `sub` claim as the AgentCore runtime user ID.
 
 ## `cloudfront`
 
@@ -64,14 +64,12 @@ frontendMode: cloudfront
 # domainName: agent.example.com   # optional
 ```
 
-A CloudFront distribution in front of a private ALB, connected by a VPC origin. Caching is disabled — Streamlit is fully dynamic — and the viewer protocol policy redirects HTTP to HTTPS. The ALB security group's default rules are replaced with a single rule admitting CloudFront's `com.amazonaws.global.cloudfront.origin-facing` managed prefix list, and the ALB idle timeout is raised to 3600 seconds so Streamlit's WebSocket connection survives.
+A CloudFront distribution in front of a private ALB, connected by a VPC origin. Caching is disabled — the chat app is fully dynamic — and the viewer protocol policy redirects HTTP to HTTPS. The ALB security group's default rules are replaced with a single rule admitting CloudFront's `com.amazonaws.global.cloudfront.origin-facing` managed prefix list. Responses stream as server-sent events with a keep-alive every 15 seconds, so the 60-second origin read timeout is not reached during long tool calls.
 
 A Cognito user pool is **always** created in this mode, with or without a custom domain. Where it is enforced differs:
 
-- **Without `domainName`** — you reach the app at the CloudFront distribution URL. The ALB listener stays on HTTP inside the VPC and the Streamlit app performs the OAuth authorization-code flow itself, using a public Cognito client with no secret. The distribution URL is registered as the OAuth callback.
+- **Without `domainName`** — you reach the app at the CloudFront distribution URL. The ALB listener stays on HTTP inside the VPC and the app performs the OAuth authorization-code flow itself (with PKCE), using a public Cognito client with no secret. `https://{distribution}/api/auth/callback` is registered as the OAuth callback. The verified ID token is kept in an `httpOnly`, `Secure`, `SameSite=Lax` cookie, and the chat API rejects cross-site requests by their `Sec-Fetch-Site` header.
 - **With `domainName`** — a certificate and Route 53 alias are created for your domain on the distribution, and authentication moves to the ALB listener as an `AuthenticateCognitoAction`, as in `public` mode. This variant is the least exercised path in the repository: the CloudFront VPC origin is configured HTTP-only on port 80 while the ALB in this variant also installs an HTTP-to-HTTPS redirect, so verify the request path end to end before relying on it. If you have a domain, `public` is the better-trodden route.
-
-> **Security note.** This mode disables Streamlit's XSRF protection and WebSocket compression (`--server.enableXsrfProtection=false --server.enableWebsocketCompression=false`), because proxying through CloudFront produces a hostname mismatch that breaks Streamlit's XSRF validation. Compensating controls: the ALB accepts traffic only from the CloudFront managed prefix list and sits in a private subnet, and Cognito login is required before any agent interaction. For production, add your own XSRF token validation or a WAF, or use `frontendMode: public`, where Streamlit's built-in check keeps working.
 
 ---
 
@@ -86,7 +84,7 @@ A Cognito user pool is **always** created in this mode, with or without a custom
 3. Open the **Users** tab and choose **Create user**.
 4. Set **Invitation message** to *Don't send an invitation*, enter the user's email address as the username, tick **Mark email address as verified**, and set a password.
 5. Choose **Create user**. The user is created in `FORCE_CHANGE_PASSWORD` state and will be asked to set a new password at first sign-in.
-6. Open the `FrontendUrl` stack output and sign in. The `CognitoHostedUiUrl` output gives the hosted UI directly.
+6. Open the `FrontendUrl` stack output and sign in. The `CognitoHostedUiUrl` output gives the managed login page directly.
 
 ### AWS CLI
 
@@ -148,7 +146,7 @@ Use a password you are willing to type into a sample deployment, and treat these
 
 ## Multi-agent frontend
 
-When `config.yaml` declares more than one agent, the stack injects an `AGENT_REGISTRY` environment variable — a JSON map of agent name to runtime ARN — and the Streamlit UI offers an agent selector. With a single agent it injects `AGENTCORE_RUNTIME_ARN` instead. This applies to every non-`none` mode and to `make ui`.
+When `config.yaml` declares more than one agent, the stack injects an `AGENT_REGISTRY` environment variable — a JSON map of agent name to runtime ARN — and the UI offers an agent selector in its header. Each chat is bound to the agent it started with, because the chat ID is that agent's runtime session ID; picking another agent starts a new chat. With a single agent it injects `AGENTCORE_RUNTIME_ARN` instead. This applies to every non-`none` mode and to `make ui`.
 
 ---
 

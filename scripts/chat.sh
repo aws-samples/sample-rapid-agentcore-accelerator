@@ -358,6 +358,7 @@ send_message_streaming_remote() {
     json_payload "$prompt" > "$tmp_payload"
 
     local had_output=false
+    local last_tool_id=""
     while IFS= read -r line; do
         if [[ -z "$line" ]]; then
             continue
@@ -387,8 +388,13 @@ send_message_streaming_remote() {
 
         tool_name=$(sse_field "$line" '.current_tool_use.name')
         if [[ -n "$tool_name" ]]; then
-            echo ""
-            echo -e "${YELLOW}🔧 Using tool: ${tool_name}${NC}"
+            # Tool input streams in chunks, one event each; announce each call once.
+            tool_id=$(sse_field "$line" '.current_tool_use.toolUseId')
+            if [[ "$tool_id" != "$last_tool_id" ]]; then
+                last_tool_id="$tool_id"
+                echo ""
+                echo -e "${YELLOW}🔧 Using tool: ${tool_name}${NC}"
+            fi
             had_output=true
             continue
         fi
