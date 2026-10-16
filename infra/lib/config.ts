@@ -15,6 +15,7 @@ export interface AgentDefinition {
   name: string;           // kebab-case, 1-63 chars
   sourceDir: string;      // resolved path relative to repo root
   modelId: string;        // inherited from top-level if not specified
+  showReasoning: boolean; // inherited from top-level if not specified
   mcpServers?: string[];  // names referencing McpDefinition entries (max 10)
   knowledgeBase?: string; // name referencing a KnowledgeBaseDefinition
 }
@@ -33,6 +34,7 @@ export interface AcceleratorConfig {
   region: string;
   deploymentPrefix: string;
   modelId: string;                            // resolved default model (may come from config or hardcoded default)
+  showReasoning: boolean;                     // stream reasoning traces to the UI (default true)
   deploymentMode: DeploymentMode;
   frontendMode: FrontendMode;
   domainName: string | null;
@@ -50,6 +52,26 @@ export const SUPPORTED_MANAGED_KB_REGIONS: readonly string[] = [
 
 const VALID_DEPLOYMENT_MODES: readonly string[] = ['local', 'pipeline'];
 const VALID_FRONTEND_MODES: readonly string[] = ['none', 'internal', 'public', 'cloudfront'];
+
+/**
+ * Returns a boolean config value, or the fallback when absent/null.
+ * The loader parses with FAILSAFE_SCHEMA, so booleans arrive as the strings
+ * "true"/"false". Throws a named error for anything else.
+ */
+function parseOptionalBoolean(value: unknown, key: string, fallback: boolean): boolean {
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  if (value === true || value === 'true') {
+    return true;
+  }
+  if (value === false || value === 'false') {
+    return false;
+  }
+  throw new Error(
+    `Invalid config: "${key}" has value "${typeof value === 'object' ? JSON.stringify(value) : String(value)}" but must be true or false`
+  );
+}
 
 /**
  * Derives the hosted-zone lookup name from the registrable parent of a domain name.
@@ -143,6 +165,9 @@ export function loadAcceleratorConfig(repoRoot: string): AcceleratorConfig {
     ? rawModelId.trim()
     : DEFAULT_MODEL_ID;
 
+  // Validate showReasoning (optional boolean — defaults to true)
+  const showReasoning = parseOptionalBoolean(config['showReasoning'], 'showReasoning', true);
+
   // Validate deploymentMode (default to 'local' when absent/null)
   let deploymentMode: DeploymentMode = 'local';
   const rawDeploymentMode = config['deploymentMode'];
@@ -213,9 +238,12 @@ export function loadAcceleratorConfig(repoRoot: string): AcceleratorConfig {
       const agentModelId = entry['modelId']
         ? (entry['modelId'] as string).trim()
         : topLevelModelId;
+      const agentShowReasoning = parseOptionalBoolean(
+        entry['showReasoning'], `agents[${name}].showReasoning`, showReasoning
+      );
       const mcpServers = entry['mcpServers'] as string[] | undefined;
       const knowledgeBase = entry['knowledgeBase'] as string | undefined;
-      return { name, sourceDir, modelId: agentModelId, ...(mcpServers ? { mcpServers } : {}), ...(knowledgeBase ? { knowledgeBase } : {}) };
+      return { name, sourceDir, modelId: agentModelId, showReasoning: agentShowReasoning, ...(mcpServers ? { mcpServers } : {}), ...(knowledgeBase ? { knowledgeBase } : {}) };
     });
   } else {
     throw new Error(
@@ -396,6 +424,7 @@ export function loadAcceleratorConfig(repoRoot: string): AcceleratorConfig {
     region: region.trim(),
     deploymentPrefix,
     modelId: topLevelModelId,
+    showReasoning,
     deploymentMode,
     frontendMode,
     domainName,

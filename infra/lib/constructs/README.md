@@ -95,19 +95,19 @@ const infraPipeline = new CdkDeployPipeline(this, 'InfraPipeline', {
 
 These constructs are **not** part of the default deployment. Add them to your stack when your use case requires them.
 
-### StreamlitFrontend
+### ChatFrontend
 
 > ⚠️ **Not wired in by default.** Enabled via `frontendMode` (`internal` or `public`) in `config.yaml`.
 
-Deploys a Streamlit app on Fargate with ALB. Add this construct when you need a hosted chat UI for your agent.
+Deploys the Next.js chat UI (`frontend/`) on Fargate with ALB. Add this construct when you need a hosted chat UI for your agent.
 
-See [streamlit-frontend/README.md](./streamlit-frontend/README.md) for detailed documentation.
+See [chat-frontend/README.md](./chat-frontend/README.md) for detailed documentation.
 
 ```typescript
-const frontend = new StreamlitFrontend(this, 'Frontend', {
+const frontend = new ChatFrontend(this, 'Frontend', {
   vpc: myVpc,
   agentRuntimeArn: agent.runtime.agentRuntimeArn,
-  dockerContextPath: path.join(__dirname, '../../frontend/src'),
+  dockerContextPath: path.join(__dirname, '../../frontend'),
 });
 ```
 
@@ -115,7 +115,7 @@ const frontend = new StreamlitFrontend(this, 'Frontend', {
 
 > ⚠️ **Not wired in by default.** Enabled via `frontendMode: public` in `config.yaml`.
 
-Creates a Cognito User Pool with app client and hosted UI domain for authentication. Add this construct when you need public-facing auth on your frontend.
+Creates a Cognito User Pool with app client and managed login domain for authentication. Add this construct when you need public-facing auth on your frontend.
 
 See [cognito-auth/README.md](./cognito-auth/README.md) for detailed documentation.
 

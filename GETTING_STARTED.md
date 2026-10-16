@@ -15,7 +15,7 @@ You need:
 | AWS account and credentials | `aws sts get-caller-identity` succeeds | Everything deploys into your own account |
 | [Docker](https://docs.docker.com/get-docker/) | Daemon running | Container images are built locally on first deploy |
 | Container architecture | `linux/arm64` | AgentCore Runtime accepts ARM64 images only. Native on Apple Silicon; on an x86/amd64 host this is a cross-architecture build needing buildx and QEMU — setup steps are in [`docs/troubleshooting.md`](docs/troubleshooting.md#cross-platform-build-issues-x86--amd64-hosts) |
-| [Node.js](https://nodejs.org/) | 18 or newer | The AWS CDK toolchain under `infra/` |
+| [Node.js](https://nodejs.org/) | 20.9 or newer (22 recommended) | The AWS CDK toolchain under `infra/` and the chat UI under `frontend/` |
 | [uv](https://docs.astral.sh/uv/) and Python | Python 3.12 | Every Python subproject pins 3.12 via `.python-version`; `uv python install 3.12` installs it |
 | Bedrock model access | Enabled in your target region for your `modelId` | The agent cannot invoke a model you have not been granted |
 
@@ -244,7 +244,7 @@ Four entry points, in order. Each one is a complete stopping place — take the 
 
 **2. Fit it to your use case — an afternoon.** Step 3, then [Multi-Agent Configuration](#multi-agent-configuration) when one agent is not enough and [MCP Server](#mcp-server) when a tool needs its own container. You get your prompt, your tools, and your documents. You defer automation and any change to the CDK. This is where most prototypes end.
 
-**3. Share it and automate it — about a day.** Step 4 for push-to-deploy, and [`docs/frontend.md`](docs/frontend.md) for a Streamlit UI other people can reach. You get something demonstrable without your laptop in the loop. You defer hardening — read [`docs/cost-and-teardown.md`](docs/cost-and-teardown.md) before you leave a frontend running.
+**3. Share it and automate it — about a day.** Step 4 for push-to-deploy, and [`docs/frontend.md`](docs/frontend.md) for a chat UI other people can reach. You get something demonstrable without your laptop in the loop. You defer hardening — read [`docs/cost-and-teardown.md`](docs/cost-and-teardown.md) before you leave a frontend running.
 
 **4. Own the infrastructure — open-ended.** [Infrastructure Customization](#infrastructure-customization) and [Going Beyond Config](#going-beyond-config). You get the L3 constructs used directly and composed however your architecture needs, with `config.yaml` trimmed to whatever is still useful or dropped entirely. You defer nothing — the CDK is now yours to maintain.
 
@@ -268,7 +268,7 @@ AgentCore-{prefix}
     │     ├── Bedrock Managed Knowledge Base
     │     └── S3 documents bucket (Docs_Bucket, kb-source-docs/ prefix)
     ├── MCP Server Runtimes (one per mcpServers[] entry)
-    └── [Optional] Frontend (Streamlit on Fargate + ALB/CloudFront)
+    └── [Optional] Frontend (Next.js chat UI on Fargate + ALB/CloudFront)
 ```
 
 The mapping between agents and their resources is config-driven:
@@ -415,7 +415,7 @@ If `mcpServers` is omitted on an agent, it gets access to **all** defined MCP se
 
 Moved to [`docs/frontend.md`](docs/frontend.md) — what each of `none`, `internal`, `public`, and `cloudfront` provisions, which resources bill while idle, how each mode is authenticated, and the console and CLI steps for creating a Cognito user after deploy.
 
-Regardless of `frontendMode`, `make ui` runs the Streamlit app on your machine against the deployed agents.
+Regardless of `frontendMode`, `make ui` runs the chat UI on your machine (http://localhost:3000) against the deployed agents.
 
 ---
 
@@ -528,9 +528,9 @@ The stack is composed from reusable L3 constructs in `infra/lib/constructs/`. Ea
 
 | Construct | What it does |
 |-----------|-------------|
-| `StreamlitFrontend` | Streamlit on Fargate + ALB. Enabled via `frontendMode`. |
+| `ChatFrontend` | Next.js chat UI on Fargate + ALB. Enabled via `frontendMode`. |
 | `CloudFrontFrontend` | CloudFront distribution with VPC Origin. Enabled via `frontendMode: cloudfront`. |
-| `CognitoAuth` | Cognito User Pool + hosted UI. Enabled via `frontendMode: public` or `cloudfront`. |
+| `CognitoAuth` | Cognito User Pool + managed login. Enabled via `frontendMode: public` or `cloudfront`. |
 | `MultimodalProcessingPipeline` | BDA-based document processing for PDFs with tables/images. Never instantiated by the default stack — wire it up yourself. |
 
 ### Example: change the S3 data source

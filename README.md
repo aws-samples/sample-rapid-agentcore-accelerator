@@ -16,7 +16,7 @@ RAPID is a config-driven monorepo blueprint for standing up agentic AI solutions
 | **Persistent memory** | Cross-session [AgentCore Memory](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/memory.html) per agent, so conversations carry context |
 | **RAG / knowledge bases** | Drop documents in `knowledge-bases/{name}/`; deploy creates an [Amazon Bedrock managed knowledge base](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-build-managed.html) per entry (service-managed embedding, search, and reranking, no vector store to operate), and `make deploy` ingests the documents into it. Re-ingest later with `make ingest-kb` |
 | **MCP tool servers** | An extensible tool layer over the [Model Context Protocol](https://modelcontextprotocol.io/), where a tool is a Python function |
-| **Web frontend** | Optional Streamlit chat UI on [AWS Fargate](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html) with [Amazon Cognito](https://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html) auth, behind an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html) or [Amazon CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html). Off by default; `make ui` runs it locally instead |
+| **Web frontend** | Optional Next.js chat UI — streamed reasoning traces and tool calls — on [AWS Fargate](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html) with [Amazon Cognito](https://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html) auth, behind an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html) or [Amazon CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html). Off by default; `make ui` runs it locally instead |
 | **CI/CD pipelines** | Opt-in via `make enable-cicd` — path-based [AWS CodePipeline](https://docs.aws.amazon.com/codepipeline/latest/userguide/welcome.html) triggers rebuild and redeploy only the agent or MCP server you changed |
 | **Reusable CDK constructs** | Every piece — agent runtime, knowledge base, MCP server, auth, frontend, pipelines — is an independent L3 construct you can compose or replace |
 
@@ -67,7 +67,7 @@ The diagram follows the flow from left to right:
 - **Monorepo.** `config.yaml` declares the agents, MCP servers, and knowledge bases; each has a matching directory holding your code — the agent harness and business logic under `agent/{name}/src`, tools and integrations under `mcp/{name}/src`, documents under `knowledge-bases/{name}/`. The CDK app under `infra/` composes one stack from that declaration.
 - **CI/CD (optional, path-filtered).** With `make enable-cicd`, a push triggers only the pipelines whose paths changed: one CodePipeline per agent, one per MCP server, and an infra pipeline that runs `cdk deploy`. Without it, `make deploy` does the same from your machine.
 - **AWS Cloud.** Container images land in ECR, one repository per image. Each agent runs as a Strands agent on its own AgentCore Runtime, reasoning with Bedrock foundation models, keeping cross-session context in its own AgentCore Memory, retrieving from its Bedrock Knowledge Base, and calling MCP tools served by separate AgentCore Runtimes — scoped per agent. The wiring between them is injected as environment variables at deploy time.
-- **Frontend (optional).** When `frontendMode` is not `none`, end users reach a Streamlit UI on Fargate through an ALB or CloudFront, authenticated by Cognito. With the default `none`, nothing user-facing is deployed and `make chat` talks to the agent directly.
+- **Frontend (optional).** When `frontendMode` is not `none`, end users reach the chat UI on Fargate through an ALB or CloudFront, authenticated by Cognito. With the default `none`, nothing user-facing is deployed and `make chat` talks to the agent directly.
 
 ## Project structure
 
@@ -81,7 +81,7 @@ agent/                 # One directory per agent — this is what you customize
 knowledge-bases/       # One directory per knowledge base; contents are ingested on deploy
 mcp/                   # One directory per MCP server
   support-tools/       #   Reference FastMCP server with sample tools
-frontend/              # Streamlit chat UI — run locally with `make ui`, or deploy it
+frontend/              # Next.js chat UI — run locally with `make ui`, or deploy it
 infra/                 # AWS CDK application (TypeScript)
   lib/constructs/      #   Reusable L3 constructs — the building blocks
   lib/stacks/          #   Stack composition, driven entirely by config.yaml

@@ -30,6 +30,7 @@ def format_sse_event(event: dict[str, Any]) -> dict[str, Any] | None:
     """Convert a Strands streaming event to SSE-compatible format.
     
     Handles the following Strands event types:
+    - reasoning: Reasoning (extended thinking) text delta
     - data: Text delta from the model's output
     - current_tool_use: Tool invocation information
     - message: Message with tool results
@@ -45,20 +46,17 @@ def format_sse_event(event: dict[str, Any]) -> dict[str, Any] | None:
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(f"Event keys: {list(event.keys())}")
     
+    # Reasoning deltas (extended thinking). Strands emits these with a
+    # "reasoningText" delta and no "data" key; signatures and redacted content
+    # carry nothing displayable and are dropped.
+    if event.get("reasoning"):
+        if event.get("reasoningText"):
+            return {"reasoning": True, "reasoningText": event["reasoningText"]}
+        return None
+
     # Handle text delta events
-    # Preserve reasoning flag if present - frontend will filter these out
     if "data" in event:
-        result = {"data": event["data"]}
-        # Include reasoning-related fields if present so frontend can filter them
-        if event.get("reasoning"):
-            result["reasoning"] = True
-        if "reasoningText" in event:
-            result["reasoningText"] = event["reasoningText"]
-        if "reasoning_signature" in event:
-            result["reasoning_signature"] = event["reasoning_signature"]
-        if "redactedContent" in event:
-            result["redactedContent"] = event["redactedContent"]
-        return result
+        return {"data": event["data"]}
     
     # Handle tool use events - check for current_tool_use with any content
     if "current_tool_use" in event:

@@ -19,6 +19,11 @@ region: us-west-2
 # eu.anthropic.claude-sonnet-5-5. See docs/configuration.md.
 # modelId: global.anthropic.claude-sonnet-5-5
 
+# Stream each agent's reasoning (adaptive thinking, summarized) to the chat UI.
+# Agents inherit this unless they set their own. Set false for a model that
+# does not support adaptive thinking.
+showReasoning: true
+
 # Image source. "local" builds Docker images from source on your machine.
 # "pipeline" pulls images from ECR, and is set for you by `make enable-cicd`.
 deploymentMode: local            # local | pipeline
@@ -38,8 +43,6 @@ deploymentMode: local            # local | pipeline
 #   cloudfront  VPC + 1 NAT gateway + private ALB + Fargate service
 #               + CloudFront distribution + Cognito user pool.
 #               Recurring cost: NAT gateway, ALB, Fargate task, CloudFront.
-#               Note: Streamlit XSRF protection is disabled in this mode
-#               (see docs/frontend.md).
 #
 # See docs/cost-and-teardown.md before choosing a non-"none" value.
 frontendMode: none               # none | internal | public | cloudfront

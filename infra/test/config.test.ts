@@ -118,6 +118,39 @@ describe('loadAcceleratorConfig - cloudfront mode', () => {
   });
 });
 
+describe('loadAcceleratorConfig - showReasoning', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
+  test('defaults to true at top level and per agent', () => {
+    mockFsWithConfig(makeConfigYaml());
+    const config = loadAcceleratorConfig('/fake/repo');
+    expect(config.showReasoning).toBe(true);
+    expect(config.agents[0].showReasoning).toBe(true);
+  });
+
+  test('agents inherit the top-level value', () => {
+    mockFsWithConfig(makeConfigYaml({ showReasoning: false }));
+    expect(loadAcceleratorConfig('/fake/repo').agents[0].showReasoning).toBe(false);
+  });
+
+  test('a per-agent value overrides the top-level value', () => {
+    mockFsWithConfig(
+      makeConfigYaml({
+        showReasoning: false,
+        agents: [{ name: 'customer-support', showReasoning: true }],
+      })
+    );
+    expect(loadAcceleratorConfig('/fake/repo').agents[0].showReasoning).toBe(true);
+  });
+
+  test('a non-boolean value throws an error naming the key', () => {
+    mockFsWithConfig(makeConfigYaml({ showReasoning: 'yes' }));
+    expect(() => loadAcceleratorConfig('/fake/repo')).toThrow(/"showReasoning".*true or false/);
+  });
+});
+
 describe('loadAcceleratorConfig - required keys', () => {
   beforeEach(() => {
     jest.resetAllMocks();
@@ -133,6 +166,7 @@ describe('loadAcceleratorConfig - required keys', () => {
         name: 'customer-support',
         sourceDir: 'agent/customer-support/src',
         modelId: 'global.anthropic.claude-sonnet-5-5',
+        showReasoning: true,
       },
     ]);
     expect(config.mcpServers).toEqual([

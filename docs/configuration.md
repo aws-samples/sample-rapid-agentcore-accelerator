@@ -13,8 +13,9 @@ The loader is [`infra/lib/config.ts`](../infra/lib/config.ts). It reads the file
 | `deploymentPrefix` | string | Yes | — | Prefixed onto every resource name so the stack can be deployed more than once in the same account and region. 1–20 characters, lowercase letters, numbers, and hyphens, starting and ending with a letter or number. |
 | `region` | string | Yes | — | The AWS region the stack deploys into. Bedrock model access must be enabled in this region. |
 | `modelId` | string | No | `global.anthropic.claude-sonnet-5-5` | Default Bedrock model for every agent. Ships commented out, so the default applies unless you uncomment it. Any agent can override it. |
+| `showReasoning` | boolean | No | `true` | Whether agents stream their reasoning (extended thinking) to the chat UI. `true` requests adaptive thinking with summarized display; `false` sends the model no thinking configuration. Any agent can override it. Set `false` for a `modelId` that does not support adaptive thinking. |
 | `deploymentMode` | `local` \| `pipeline` | No | `local` | Where container images come from. `local` builds them from source on your machine via CDK Docker assets; `pipeline` pulls them from ECR. `make enable-cicd` switches this for you. |
-| `frontendMode` | `none` \| `internal` \| `public` \| `cloudfront` | Yes | — | Which Streamlit frontend to deploy. `none` provisions no VPC, load balancer, CloudFront distribution, or Cognito user pool. Every other value provisions resources that bill while idle. See [`docs/frontend.md`](frontend.md) and [`docs/cost-and-teardown.md`](cost-and-teardown.md). |
+| `frontendMode` | `none` \| `internal` \| `public` \| `cloudfront` | Yes | — | Which chat frontend (Next.js) to deploy. `none` provisions no VPC, load balancer, CloudFront distribution, or Cognito user pool. Every other value provisions resources that bill while idle. See [`docs/frontend.md`](frontend.md) and [`docs/cost-and-teardown.md`](cost-and-teardown.md). |
 | `domainName` | string \| null | Conditional | `null` | Custom domain for the frontend. **Required** when `frontendMode` is `public` — the loader rejects that combination without it, because a public load balancer with no certificate would serve plaintext HTTP. Optional for `cloudfront`, where it replaces the generated CloudFront URL. Ignored by `none` and `internal`. |
 | `hostedZoneName` | string \| null | No | derived from `domainName` | The Route 53 hosted zone used for certificate validation and alias records. Derived by taking the last two labels of `domainName` (`agent.example.com` → `example.com`). Set it explicitly when your zone has three or more labels. `null` when `domainName` is unset. |
 | `agents` | list of mappings | Yes | — | One [agent entry](#agents) per AgentCore Runtime to deploy. Each entry also gets cross-session Memory, an ECR repository, and — in `pipeline` mode — its own CI/CD pipeline. Must contain at least one entry. |
@@ -36,6 +37,7 @@ Three keys that older copies of `config.yaml` declared — `documentsBucketName`
 | `name` | string | Yes | — | Identifier for the agent. Kebab-case: lowercase letters, numbers, and hyphens, starting with a letter, 1–63 characters. Must be unique across `agents`. Drives the runtime name and the default source directory. |
 | `sourceDir` | string | No | `agent/{name}/src` | Path to the agent source, relative to the repository root. Must exist on disk. |
 | `modelId` | string | No | top-level `modelId` | Bedrock model for this agent, injected as the `MODEL_ID` environment variable. |
+| `showReasoning` | boolean | No | top-level `showReasoning` | Whether this agent streams reasoning to the UI. `false` injects `THINKING_DISPLAY=off`; `true` leaves it unset, and the agent defaults to summarized adaptive thinking. |
 | `knowledgeBase` | string | No | — | Name of an entry in `knowledgeBases`. Injects the `KNOWLEDGE_BASE_ID` environment variable and grants the agent `bedrock:Retrieve` on that knowledge base only. A name that is not defined is an error. |
 | `mcpServers` | list of strings | No | all defined MCP servers | Names of entries in `mcpServers` this agent may invoke. Maximum 10 per agent. The agent is granted invoke permission on exactly these runtimes and no others. A name that is not defined is an error. |
 
@@ -122,12 +124,21 @@ To see which profiles your model offers, open the Amazon Bedrock console and go 
 
 ---
 
+## Reasoning traces
+
+With `showReasoning: true` (the default) each agent builds its Bedrock model with adaptive thinking and `display: "summarized"`, and streams the reasoning text to the chat UI, which shows it in a collapsible panel above the answer. Claude Sonnet 5.5 thinks adaptively whether or not this is set; without `display: "summarized"` its reasoning blocks arrive empty.
+
+`showReasoning: false` injects `THINKING_DISPLAY=off` into that agent's runtime, and the agent sends the model no thinking configuration. Use it for a `modelId` that rejects adaptive thinking.
+
+---
+
 ## What validation catches
 
 The loader raises a descriptive error, before any construct is created, for each of the following:
 
 - A missing or empty `region`, `deploymentPrefix`, or `frontendMode`, or a `deploymentPrefix` that breaks the character rule.
 - A `deploymentMode` or `frontendMode` value outside its accepted set — the error lists the accepted values.
+- A `showReasoning` value, top-level or per agent, that is not `true` or `false`.
 - `frontendMode: public` without a `domainName`.
 - A missing `agents` or `mcpServers` key, or an `agents` list with zero entries.
 - A name that is not kebab-case, or a duplicate name within `agents`, `mcpServers`, or `knowledgeBases`.
@@ -153,6 +164,11 @@ region: us-west-2
 # Default Bedrock model ID. Agents inherit this unless they set their own.
 # Omit to use the default: global.anthropic.claude-sonnet-5-5
 # modelId: global.anthropic.claude-sonnet-5-5
+
+# Stream each agent's reasoning (adaptive thinking, summarized) to the chat UI.
+# Agents inherit this unless they set their own. Set false for a model that
+# does not support adaptive thinking.
+showReasoning: true
 
 # Image source. "local" builds Docker images from source on your machine.
 # "pipeline" pulls images from ECR, and is set for you by `make enable-cicd`.

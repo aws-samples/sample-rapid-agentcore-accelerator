@@ -5,7 +5,7 @@
 // ============================================================================
 
 import * as cdk from 'aws-cdk-lib';
-import { Template } from 'aws-cdk-lib/assertions';
+import { Match, Template } from 'aws-cdk-lib/assertions';
 import { AgentCoreStack } from '../lib/stacks/agentcore-cdk-stack';
 import { AcceleratorConfig } from '../lib/config';
 
@@ -17,6 +17,7 @@ function buildStack(overrides: Partial<AcceleratorConfig>): cdk.Stack {
     region: 'us-west-2',
     deploymentPrefix: 'testprefix',
     modelId: MODEL_ID,
+    showReasoning: true,
     deploymentMode: 'local',
     frontendMode: 'none',
     domainName: null,
@@ -88,11 +89,12 @@ describe('AgentCoreStack', () => {
       region: 'us-west-2',
       deploymentPrefix: 'testprefix',
       modelId: 'global.anthropic.claude-sonnet-5-5',
+      showReasoning: true,
       deploymentMode: 'local',
       frontendMode: 'none',
       domainName: null,
       hostedZoneName: null,
-      agents: [{ name: 'testprefix', sourceDir: 'agent/customer-support/src', modelId: 'global.anthropic.claude-sonnet-5-5', knowledgeBase: 'test-kb' }],
+      agents: [{ name: 'testprefix', sourceDir: 'agent/customer-support/src', modelId: 'global.anthropic.claude-sonnet-5-5', showReasoning: true, knowledgeBase: 'test-kb' }],
       mcpServers: [{ name: 'testprefix', sourceDir: 'mcp/support-tools/src' }],
       knowledgeBases: [{ name: 'test-kb', sourceDir: 'knowledge-bases/test-kb' }],
     };
@@ -243,6 +245,28 @@ describe('AgentCoreStack', () => {
   });
 });
 
+describe('AgentCoreStack Cognito sign-in', () => {
+  const template = Template.fromStack(
+    buildStack({
+      frontendMode: 'cloudfront',
+      agents: [{ name: 'test-agent', sourceDir: 'agent/it-helpdesk/src', modelId: MODEL_ID, showReasoning: true, mcpServers: [] }],
+    }),
+  );
+
+  // Without managedLoginVersion, Cognito serves the classic hosted UI.
+  test('the user pool domain uses managed login', () => {
+    template.hasResourceProperties('AWS::Cognito::UserPoolDomain', { ManagedLoginVersion: 2 });
+  });
+
+  // Managed login renders an error page for an app client with no branding.
+  test('the app client has managed login branding', () => {
+    template.hasResourceProperties('AWS::Cognito::ManagedLoginBranding', {
+      UseCognitoProvidedValues: true,
+      ClientId: Match.anyValue(),
+    });
+  });
+});
+
 // Wiring test: its own stack, deliberately not snapshotted. Two knowledge bases and
 // three agents (one per knowledge base, one with none) show that each agent is
 // wired to exactly its own knowledge base.
@@ -253,9 +277,9 @@ describe('AgentCoreStack knowledge base wiring', () => {
     template = Template.fromStack(buildStack({
       deploymentPrefix: 'wiring',
       agents: [
-        { name: 'agent-a', sourceDir: 'agent/customer-support/src', modelId: MODEL_ID, knowledgeBase: 'kb-a' },
-        { name: 'agent-b', sourceDir: 'agent/customer-support/src', modelId: MODEL_ID, knowledgeBase: 'kb-b' },
-        { name: 'plain', sourceDir: 'agent/customer-support/src', modelId: MODEL_ID },
+        { name: 'agent-a', sourceDir: 'agent/customer-support/src', modelId: MODEL_ID, showReasoning: true, knowledgeBase: 'kb-a' },
+        { name: 'agent-b', sourceDir: 'agent/customer-support/src', modelId: MODEL_ID, showReasoning: true, knowledgeBase: 'kb-b' },
+        { name: 'plain', sourceDir: 'agent/customer-support/src', modelId: MODEL_ID, showReasoning: true },
       ],
       knowledgeBases: [
         { name: 'kb-a', sourceDir: 'knowledge-bases/kb-a' },
@@ -311,7 +335,7 @@ describe('AgentCoreStack knowledge base wiring', () => {
 describe('AgentCoreStack edge cases', () => {
   test('zero knowledge bases synthesizes with zero knowledge base resources', () => {
     const template = Template.fromStack(buildStack({
-      agents: [{ name: 'plain', sourceDir: 'agent/customer-support/src', modelId: MODEL_ID }],
+      agents: [{ name: 'plain', sourceDir: 'agent/customer-support/src', modelId: MODEL_ID, showReasoning: true }],
       knowledgeBases: [],
     }));
     template.resourceCountIs('AWS::Bedrock::KnowledgeBase', 0);
@@ -324,7 +348,7 @@ describe('AgentCoreStack edge cases', () => {
 
   test('an agent referencing an unknown knowledge base fails naming the agent and the knowledge base', () => {
     expect(() => buildStack({
-      agents: [{ name: 'lost-agent', sourceDir: 'agent/customer-support/src', modelId: MODEL_ID, knowledgeBase: 'missing-kb' }],
+      agents: [{ name: 'lost-agent', sourceDir: 'agent/customer-support/src', modelId: MODEL_ID, showReasoning: true, knowledgeBase: 'missing-kb' }],
       knowledgeBases: [{ name: 'other-kb', sourceDir: 'knowledge-bases/other-kb' }],
     })).toThrow(/lost-agent.*missing-kb/);
   });

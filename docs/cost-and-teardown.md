@@ -23,7 +23,7 @@ These four resources bill on an hourly or per-hour-plus-data basis from the mome
 |---|---|---|---|
 | NAT gateway (1 per deployment) | `internal`, `public`, `cloudfront` | Per hour, plus per GB processed | [Amazon VPC pricing](https://aws.amazon.com/vpc/pricing/) |
 | Application Load Balancer | `internal`, `public`, `cloudfront` | Per hour, plus capacity units | [Elastic Load Balancing pricing](https://aws.amazon.com/elasticloadbalancing/pricing/) |
-| Fargate task (Streamlit UI, 0.25 vCPU / 0.5 GB, `desiredCount: 1`) | `internal`, `public`, `cloudfront` | Per vCPU-second and GB-second while running | [AWS Fargate pricing](https://aws.amazon.com/fargate/pricing/) |
+| Fargate task (chat UI, 0.25 vCPU / 0.5 GB, `desiredCount: 1`) | `internal`, `public`, `cloudfront` | Per vCPU-second and GB-second while running | [AWS Fargate pricing](https://aws.amazon.com/fargate/pricing/) |
 | CloudFront distribution | `cloudfront` | Per request and per GB transferred; no hourly floor, but the distribution stays billable-on-use indefinitely | [Amazon CloudFront pricing](https://aws.amazon.com/cloudfront/pricing/) |
 
 ### Per-mode summary
@@ -35,7 +35,7 @@ These four resources bill on an hourly or per-hour-plus-data basis from the mome
 | `public` | VPC, 1 NAT gateway, public ALB with HTTPS, Fargate service, Cognito user pool, Route 53 alias record, ACM certificate | NAT gateway, ALB, Fargate task |
 | `cloudfront` | VPC, 1 NAT gateway, private ALB, Fargate service, CloudFront distribution, Cognito user pool | NAT gateway, ALB, Fargate task, CloudFront |
 
-`none` is the shipped default in [`config.yaml`](../config.yaml). You interact with the agent through `make chat`, or run the Streamlit UI on your own machine with `make ui` — neither provisions any of the above. See [`docs/frontend.md`](frontend.md) for what each mode gives you and how it is authenticated.
+`none` is the shipped default in [`config.yaml`](../config.yaml). You interact with the agent through `make chat`, or run the chat UI on your own machine with `make ui` — neither provisions any of the above. See [`docs/frontend.md`](frontend.md) for what each mode gives you and how it is authenticated.
 
 The Cognito user pool (`public` and `cloudfront`) has no hourly charge; it is billed on monthly active users. The ACM public certificate is free. The Route 53 hosted zone is looked up, not created — you are already paying for it if you set `domainName`. See [Amazon Cognito pricing](https://aws.amazon.com/cognito/pricing/) and [Amazon Route 53 pricing](https://aws.amazon.com/route53/pricing/).
 

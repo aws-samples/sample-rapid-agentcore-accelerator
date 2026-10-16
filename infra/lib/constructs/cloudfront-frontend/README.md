@@ -8,7 +8,7 @@ Instantiated by `AgentCoreStack` when `config.yaml` sets `frontendMode: cloudfro
 
 - VPC origin to a private ALB, so no internet-facing load balancer is needed
 - TLS termination at the CloudFront edge; viewer requests on HTTP are redirected to HTTPS
-- Caching disabled — Streamlit is fully dynamic
+- Caching disabled — the chat app is fully dynamic
 - All HTTP methods allowed, and all viewer headers except `Host` forwarded to the origin
 - Optional custom domain with a DNS-validated ACM certificate and a Route 53 alias record
 - `RemovalPolicy.DESTROY` on the distribution, so `make destroy` leaves nothing behind
@@ -49,7 +49,7 @@ cdn.distributionUrl; // https://d1234abcd.cloudfront.net
 | Property | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
 | `vpc` | `ec2.IVpc` | Yes | — | VPC containing the internal ALB |
-| `alb` | `elbv2.IApplicationLoadBalancer` | Yes | — | The internal ALB to use as the origin, typically `StreamlitFrontend`'s `service.loadBalancer` |
+| `alb` | `elbv2.IApplicationLoadBalancer` | Yes | — | The internal ALB to use as the origin, typically `ChatFrontend`'s `service.loadBalancer` |
 | `domain` | `CloudFrontFrontendDomainConfig` | No | — | Custom domain configuration. Omit to use the generated distribution domain |
 
 ### `CloudFrontFrontendDomainConfig`
@@ -74,9 +74,10 @@ Both props are validated in the constructor: a missing `vpc` or `alb` throws an 
 | Setting | Value | Reason |
 |---------|-------|--------|
 | Origin protocol policy | `HTTP_ONLY`, port 80 | The origin leg runs inside the VPC over the private VPC origin link |
-| Origin keepalive timeout | 30 seconds | Once the Streamlit WebSocket handshake completes inside 30 seconds, CloudFront holds the connection open |
+| Origin read timeout | 60 seconds | The maximum without a quota increase. The chat route streams SSE and sends a keep-alive every 15 seconds, so a long tool call never idles the connection that long |
+| Origin keepalive timeout | 30 seconds | How long CloudFront reuses an idle connection to the origin |
 | Viewer protocol policy | `REDIRECT_TO_HTTPS` | Viewers are never served over plain HTTP |
-| Allowed methods | `ALLOW_ALL` | Streamlit posts on the same path it reads |
+| Allowed methods | `ALLOW_ALL` | The chat API is a `POST` route |
 | Cache policy | `CACHING_DISABLED` | Every response is session-specific |
 | Origin request policy | `ALL_VIEWER_EXCEPT_HOST_HEADER` | The VPC origin needs the ALB's own `Host` value, not the viewer's |
 
@@ -94,6 +95,6 @@ This construct is a prototype building block. The following are known and accept
 - **No access logging.** Neither the distribution nor the origin leg writes access logs, so there is no request-level audit trail. Enable standard or real-time logs to an S3 bucket for production.
 - **No web application firewall.** No AWS WAF web ACL is associated, so the distribution has no managed rule protection and no rate limiting. Associate a web ACL before exposing this publicly.
 - **Certificate region.** The certificate is created in the stack's region. A stack outside `us-east-1` with a custom domain needs the certificate provisioned in `us-east-1` separately and passed in.
-- **No geo restriction and no signed URLs.** The distribution serves every viewer in every country. Authentication is the responsibility of the layer behind it — the Streamlit app's OAuth flow, or the ALB's Cognito action in the `domainName` variant.
+- **No geo restriction and no signed URLs.** The distribution serves every viewer in every country. Authentication is the responsibility of the layer behind it — the chat app's own OAuth flow, or the ALB's Cognito action in the `domainName` variant.
 
 Both the access-logging and WAF gaps carry cdk-nag suppressions in [`infra/app.ts`](../../../app.ts), where each suppression states its accepted reason.

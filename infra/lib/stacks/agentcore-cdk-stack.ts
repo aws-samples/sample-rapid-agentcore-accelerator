@@ -17,7 +17,7 @@ import { AgentCoreMCPServer } from '../constructs/agentcore-mcp-server';
 import { AgentCorePipeline } from '../constructs/agentcore-pipeline';
 import { CdkDeployPipeline } from '../constructs/cdk-deploy-pipeline';
 import { MonorepoSource } from '../constructs/monorepo-source';
-import { StreamlitFrontend } from '../constructs/streamlit-frontend';
+import { ChatFrontend } from '../constructs/chat-frontend';
 import { CognitoAuth } from '../constructs/cognito-auth';
 import { CloudFrontFrontend } from '../constructs/cloudfront-frontend';
 import { AcceleratorConfig } from '../config';
@@ -48,7 +48,7 @@ export class AgentCoreStack extends cdk.Stack {
   public readonly mcpPipeline?: AgentCorePipeline;
   public readonly infraPipeline?: CdkDeployPipeline;
   public readonly cognito?: CognitoAuth;
-  public readonly frontend?: StreamlitFrontend;
+  public readonly frontend?: ChatFrontend;
 
   constructor(scope: Construct, id: string, props: AgentCoreStackProps) {
     super(scope, id, props);
@@ -222,6 +222,11 @@ export class AgentCoreStack extends cdk.Stack {
       const envVars: Record<string, string> = {
         MODEL_ID: agentDef.modelId,
       };
+
+      // The agent defaults to streaming summarized reasoning; only opt-out needs a variable
+      if (!agentDef.showReasoning) {
+        envVars.THINKING_DISPLAY = 'off';
+      }
 
       // Set MCP environment variable(s) based on mode
       if (isSingleAgentMode) {
@@ -450,8 +455,8 @@ export class AgentCoreStack extends cdk.Stack {
 
     // ─── Frontend Mode Composition ───────────────────────────────────────────────
     // frontendMode: 'none' → no VPC, no frontend (Req 4.12)
-    // frontendMode: 'internal' → VPC + StreamlitFrontend (internal ALB, no Cognito)
-    // frontendMode: 'public' → VPC + CognitoAuth + StreamlitFrontend (public ALB, HTTPS, Route 53)
+    // frontendMode: 'internal' → VPC + ChatFrontend (internal ALB, no Cognito)
+    // frontendMode: 'public' → VPC + CognitoAuth + ChatFrontend (public ALB, HTTPS, Route 53)
     if (config.frontendMode === 'internal') {
       // Create VPC with public and private subnets
       this.vpc = new ec2.Vpc(this, 'Vpc', {
@@ -472,14 +477,13 @@ export class AgentCoreStack extends cdk.Stack {
         ],
       });
 
-      // Streamlit frontend with internal ALB (no Cognito, no HTTPS)
-      this.frontend = new StreamlitFrontend(this, 'Frontend', {
+      // Chat frontend with internal ALB (no Cognito, no HTTPS)
+      this.frontend = new ChatFrontend(this, 'Frontend', {
         vpc: this.vpc,
         agentRuntimeArn: firstAgent.runtime.agentRuntimeArn,
-        dockerContextPath: '../frontend/src',
+        dockerContextPath: '../frontend',
         agentCoreSecurityGroup: firstAgent.securityGroup,
         publicLoadBalancer: false,
-        enableStreaming: true,
       });
 
       // Wire agent runtime info to the frontend container
@@ -538,13 +542,12 @@ export class AgentCoreStack extends cdk.Stack {
         userPoolName: `${prefix}-public-users`,
       });
 
-      // Streamlit frontend with public ALB, HTTPS, and Cognito
-      this.frontend = new StreamlitFrontend(this, 'Frontend', {
+      // Chat frontend with public ALB, HTTPS, and Cognito
+      this.frontend = new ChatFrontend(this, 'Frontend', {
         vpc: this.vpc,
         agentRuntimeArn: firstAgent.runtime.agentRuntimeArn,
-        dockerContextPath: '../frontend/src',
+        dockerContextPath: '../frontend',
         publicLoadBalancer: true,
-        enableStreaming: true,
         agentCoreSecurityGroup: firstAgent.securityGroup,
         domain: {
           domainName: config.domainName!,
@@ -577,7 +580,7 @@ export class AgentCoreStack extends cdk.Stack {
 
       new cdk.CfnOutput(this, 'FrontendUrl', {
         value: this.frontend.loadBalancerUrl,
-        description: 'Public HTTPS URL for the Streamlit frontend',
+        description: 'Public HTTPS URL for the chat frontend',
       });
 
       new cdk.CfnOutput(this, 'CognitoUserPoolId', {
@@ -631,14 +634,13 @@ export class AgentCoreStack extends cdk.Stack {
 
       if (config.domainName && hostedZone) {
         // ─── With custom domain: ALB gets HTTPS + Cognito auth action ───────────
-        // CloudFront → ALB (HTTPS, port 443) → Cognito authenticate action → Streamlit
-        this.frontend = new StreamlitFrontend(this, 'Frontend', {
+        // CloudFront → ALB (HTTPS, port 443) → Cognito authenticate action → chat frontend
+        this.frontend = new ChatFrontend(this, 'Frontend', {
           vpc: this.vpc,
           agentRuntimeArn: firstAgent.runtime.agentRuntimeArn,
-          dockerContextPath: '../frontend/src',
+          dockerContextPath: '../frontend',
           publicLoadBalancer: false,
-          enableStreaming: true,
-          agentCoreSecurityGroup: firstAgent.securityGroup,
+            agentCoreSecurityGroup: firstAgent.securityGroup,
           domain: {
             domainName: config.domainName,
             hostedZone,
@@ -652,16 +654,15 @@ export class AgentCoreStack extends cdk.Stack {
         });
       } else {
         // ─── Without domain: ALB stays HTTP, app-level Cognito OAuth ────────────
-        // CloudFront → ALB (HTTP, port 80) → Streamlit (handles OAuth redirect itself)
+        // CloudFront → ALB (HTTP, port 80) → chat frontend (handles OAuth redirect itself)
         // The ALB is private (restricted to the CloudFront managed prefix list), so an
         // HTTP listener is an acceptable trade-off for the no-domain quickstart.
-        this.frontend = new StreamlitFrontend(this, 'Frontend', {
+        this.frontend = new ChatFrontend(this, 'Frontend', {
           vpc: this.vpc,
           agentRuntimeArn: firstAgent.runtime.agentRuntimeArn,
-          dockerContextPath: '../frontend/src',
+          dockerContextPath: '../frontend',
           publicLoadBalancer: false,
-          enableStreaming: true,
-          agentCoreSecurityGroup: firstAgent.securityGroup,
+            agentCoreSecurityGroup: firstAgent.securityGroup,
         });
       }
 
@@ -675,30 +676,16 @@ export class AgentCoreStack extends cdk.Stack {
         } : undefined,
       });
 
-      // Increase ALB idle timeout for WebSocket connections (Streamlit uses WebSockets
-      // at /_stcore/stream for real-time updates). Default 60s is too short.
-      this.frontend.service.loadBalancer.setAttribute('idle_timeout.timeout_seconds', '3600');
-
-      // Configure Streamlit for running behind CloudFront (proxy-compatible flags)
-      // SECURITY NOTE: XSRF protection is disabled because CloudFront proxying causes
-      // hostname mismatch that breaks Streamlit's built-in XSRF validation.
-      // See docs/frontend.md for the trade-off and compensating controls.
-      this.frontend.service.taskDefinition.defaultContainer!.addEnvironment(
-        'STREAMLIT_SERVER_EXTRA_FLAGS',
-        '--server.enableXsrfProtection=false --server.enableWebsocketCompression=false',
-      );
-
-      // For the no-domain path: pass Cognito config as env vars for app-level OAuth
+      // For the no-domain path: the app runs the Cognito OAuth code flow itself
       if (!config.domainName) {
-        const redirectUri = `https://${cloudfrontFrontend.distribution.distributionDomainName}/`;
         const taskDef = this.frontend.service.taskDefinition.defaultContainer!;
-        taskDef.addEnvironment('COGNITO_AUTH_ENABLED', 'true');
+        taskDef.addEnvironment('AUTH_MODE', 'app');
+        taskDef.addEnvironment('PUBLIC_URL', cloudfrontFrontend.distributionUrl);
         taskDef.addEnvironment('COGNITO_USER_POOL_ID', this.cognito.userPool.userPoolId);
         taskDef.addEnvironment('COGNITO_CLIENT_ID', this.cognito.userPoolClient.userPoolClientId);
         taskDef.addEnvironment('COGNITO_DOMAIN', `${this.cognito.userPoolDomain.domainName}.auth.${cdk.Aws.REGION}.amazoncognito.com`);
-        taskDef.addEnvironment('COGNITO_REDIRECT_URI', redirectUri);
 
-        // Register CloudFront domain as Cognito OAuth callback (app-level OAuth uses / as redirect)
+        // Register the distribution as the OAuth callback (/api/auth/callback) and logout URL
         this.cognito.addAppCallbackUrls(cloudfrontFrontend.distribution.distributionDomainName);
       }
 
@@ -727,7 +714,7 @@ export class AgentCoreStack extends cdk.Stack {
         `Allow traffic from CloudFront managed prefix list (port ${albPort})`,
       );
 
-      // Remove the default VPC CIDR inbound rule that StreamlitFrontend adds for internal ALBs.
+      // Remove the default VPC CIDR inbound rule that ChatFrontend adds for internal ALBs.
       // The ALB should only be reachable from CloudFront's managed prefix list.
       const albSgConstruct = this.frontend.node.findChild('AlbSecurityGroup') as ec2.SecurityGroup;
       const cfnAlbSg = albSgConstruct.node.defaultChild as ec2.CfnSecurityGroup;
@@ -753,7 +740,7 @@ export class AgentCoreStack extends cdk.Stack {
       // Stack outputs
       new cdk.CfnOutput(this, 'FrontendUrl', {
         value: cloudfrontFrontend.distributionUrl,
-        description: 'CloudFront distribution URL for the Streamlit frontend',
+        description: 'CloudFront distribution URL for the chat frontend',
       });
 
       new cdk.CfnOutput(this, 'CloudFrontDistributionId', {

@@ -167,17 +167,18 @@ else
   fail "uv installed" "Install uv: https://docs.astral.sh/uv/"
 fi
 
-# --- 6. Node >= 18 ---
+# --- 6. Node >= 20.9 (the Next.js chat frontend's minimum) ---
 if command -v node >/dev/null 2>&1; then
   NODE_VERSION="$(node --version 2>/dev/null | sed 's/^v//')"
   NODE_MAJOR="$(echo "$NODE_VERSION" | cut -d. -f1)"
-  if [ "$NODE_MAJOR" -ge 18 ] 2>/dev/null; then
-    pass "Node.js v$NODE_VERSION (>= 18)"
+  NODE_MINOR="$(echo "$NODE_VERSION" | cut -d. -f2)"
+  if [ "$NODE_MAJOR" -gt 20 ] 2>/dev/null || { [ "$NODE_MAJOR" -eq 20 ] && [ "$NODE_MINOR" -ge 9 ]; } 2>/dev/null; then
+    pass "Node.js v$NODE_VERSION (>= 20.9)"
   else
-    fail "Node.js v$NODE_VERSION" "Install Node 18+"
+    fail "Node.js v$NODE_VERSION" "Install Node 22 (20.9 is the minimum)"
   fi
 else
-  fail "Node.js not found" "Install Node 18+"
+  fail "Node.js not found" "Install Node 22 (20.9 is the minimum)"
 fi
 
 # --- 7. Python: the version each subproject pins is available to uv ---

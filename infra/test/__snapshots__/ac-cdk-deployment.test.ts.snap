@@ -766,7 +766,7 @@ exports[`AgentCoreStack snapshot matches for default local/none config 1`] = `
         "AgentRuntimeArtifact": {
           "ContainerConfiguration": {
             "ContainerUri": {
-              "Fn::Sub": "123456789012.dkr.ecr.us-west-2.\${AWS::URLSuffix}/cdk-hnb659fds-container-assets-123456789012-us-west-2:5e90dcceebe0d3bdba1af9a69e1468b1aa7014ad14c710400a217a4e9b497a6e",
+              "Fn::Sub": "123456789012.dkr.ecr.us-west-2.\${AWS::URLSuffix}/cdk-hnb659fds-container-assets-123456789012-us-west-2:0eba192dd65cd781e4326a55382c82a05fbae9a5a545a34eff8a95484dbc554c",
             },
           },
         },

@@ -199,7 +199,23 @@ function configMutationArb(): fc.Arbitrary<MutationCase> {
       return mutationCase('deployment-prefix-format', 'deploymentPrefix', config);
     });
 
-  // 9. An enum key holds a value outside its accepted set.
+  // 9. A boolean key holds something other than true/false, top-level or per agent.
+  const nonBooleanFlag = fc
+    .tuple(
+      fc.oneof(freshName, fc.constant({ unexpected: 'mapping' }), fc.constant(['first'])),
+      fc.boolean()
+    )
+    .map(([value, perAgent]) => {
+      const config = clone(baseConfig());
+      if (perAgent) {
+        listOf(config, 'agents')[0]['showReasoning'] = value;
+      } else {
+        config['showReasoning'] = value;
+      }
+      return mutationCase('non-boolean-flag', 'showReasoning', config);
+    });
+
+  // 10. An enum key holds a value outside its accepted set.
   const outOfSetEnumValue = fc.oneof(
     freshName
       .filter((v) => !(VALID_FRONTEND_MODES as readonly string[]).includes(v))
@@ -226,6 +242,7 @@ function configMutationArb(): fc.Arbitrary<MutationCase> {
     duplicateName,
     nonExistentSourceDir,
     deploymentPrefixFormat,
+    nonBooleanFlag,
     outOfSetEnumValue
   );
 }
@@ -239,6 +256,7 @@ const ALL_MUTATION_KINDS = [
   'duplicate-name',
   'non-existent-source-dir',
   'deployment-prefix-format',
+  'non-boolean-flag',
   'out-of-set-enum-value',
 ];
 

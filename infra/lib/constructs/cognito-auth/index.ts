@@ -19,18 +19,18 @@ export interface CognitoAuthProps {
 
   /**
    * OAuth callback URLs (for local development)
-   * @default ['http://localhost:8501/']
+   * @default ['http://localhost:3000/api/auth/callback']
    */
   readonly callbackUrls?: string[];
 
   /**
    * OAuth logout URLs (for local development)
-   * @default ['http://localhost:8501/']
+   * @default ['http://localhost:3000/']
    */
   readonly logoutUrls?: string[];
 
   /**
-   * Domain prefix for hosted UI
+   * Domain prefix for managed login
    * @default '{userPoolName}-{accountId}'
    */
   readonly domainPrefix?: string;
@@ -85,8 +85,8 @@ export class CognitoAuth extends Construct {
           cognito.OAuthScope.OPENID,
           cognito.OAuthScope.PROFILE,
         ],
-        callbackUrls: props?.callbackUrls ?? ['http://localhost:8501/'],
-        logoutUrls: props?.logoutUrls ?? ['http://localhost:8501/'],
+        callbackUrls: props?.callbackUrls ?? ['http://localhost:3000/api/auth/callback'],
+        logoutUrls: props?.logoutUrls ?? ['http://localhost:3000/'],
       },
       accessTokenValidity: cdk.Duration.hours(1),
       idTokenValidity: cdk.Duration.hours(1),
@@ -97,11 +97,20 @@ export class CognitoAuth extends Construct {
       cognitoDomain: {
         domainPrefix: props?.domainPrefix ?? `${(props?.userPoolName ?? 'agent-user-pool').slice(0, 49)}-${cdk.Aws.ACCOUNT_ID}`,
       },
+      managedLoginVersion: cognito.ManagedLoginVersion.NEWER_MANAGED_LOGIN,
+    });
+
+    // Managed login serves an error page for a client with no branding; this
+    // applies Cognito's default style.
+    new cognito.CfnManagedLoginBranding(this, 'ManagedLoginBranding', {
+      userPoolId: this.userPool.userPoolId,
+      clientId: this.userPoolClient.userPoolClientId,
+      useCognitoProvidedValues: true,
     });
   }
 
   /**
-   * Get the hosted UI domain URL
+   * Get the managed login domain URL
    */
   public get domainUrl(): string {
     return `https://${this.userPoolDomain.domainName}.auth.${cdk.Aws.REGION}.amazoncognito.com`;
@@ -128,8 +137,8 @@ export class CognitoAuth extends Construct {
         parameters: {
           UserPoolId: this.userPool.userPoolId,
           ClientId: this.userPoolClient.userPoolClientId,
-          CallbackURLs: [callbackUrl, 'http://localhost:8501/'],
-          LogoutURLs: [logoutUrl, 'http://localhost:8501/'],
+          CallbackURLs: [callbackUrl, 'http://localhost:3000/'],
+          LogoutURLs: [logoutUrl, 'http://localhost:3000/'],
           AllowedOAuthFlows: ['code'],
           AllowedOAuthScopes: ['email', 'openid', 'profile'],
           AllowedOAuthFlowsUserPoolClient: true,
@@ -143,8 +152,8 @@ export class CognitoAuth extends Construct {
         parameters: {
           UserPoolId: this.userPool.userPoolId,
           ClientId: this.userPoolClient.userPoolClientId,
-          CallbackURLs: [callbackUrl, 'http://localhost:8501/'],
-          LogoutURLs: [logoutUrl, 'http://localhost:8501/'],
+          CallbackURLs: [callbackUrl, 'http://localhost:3000/'],
+          LogoutURLs: [logoutUrl, 'http://localhost:3000/'],
           AllowedOAuthFlows: ['code'],
           AllowedOAuthScopes: ['email', 'openid', 'profile'],
           AllowedOAuthFlowsUserPoolClient: true,
@@ -164,12 +173,12 @@ export class CognitoAuth extends Construct {
   /**
    * Add app-level OAuth callback URLs to the Cognito client.
    * Used for application-level OAuth (CloudFront without custom domain).
-   * The redirect_uri is the root path (/) since the Streamlit app handles the callback.
+   * The redirect_uri is /api/auth/callback, the app's own OAuth callback route.
    * 
    * @param domainName The CloudFront distribution domain (e.g., d1234.cloudfront.net)
    */
   public addAppCallbackUrls(domainName: string): void {
-    const callbackUrl = `https://${domainName}/`;
+    const callbackUrl = `https://${domainName}/api/auth/callback`;
     const logoutUrl = `https://${domainName}/`;
 
     new cr.AwsCustomResource(this, 'UpdateAppCallbackUrls', {
@@ -179,8 +188,8 @@ export class CognitoAuth extends Construct {
         parameters: {
           UserPoolId: this.userPool.userPoolId,
           ClientId: this.userPoolClient.userPoolClientId,
-          CallbackURLs: [callbackUrl, 'http://localhost:8501/'],
-          LogoutURLs: [logoutUrl, 'http://localhost:8501/'],
+          CallbackURLs: [callbackUrl, 'http://localhost:3000/api/auth/callback'],
+          LogoutURLs: [logoutUrl, 'http://localhost:3000/'],
           AllowedOAuthFlows: ['code'],
           AllowedOAuthScopes: ['email', 'openid', 'profile'],
           AllowedOAuthFlowsUserPoolClient: true,
@@ -194,8 +203,8 @@ export class CognitoAuth extends Construct {
         parameters: {
           UserPoolId: this.userPool.userPoolId,
           ClientId: this.userPoolClient.userPoolClientId,
-          CallbackURLs: [callbackUrl, 'http://localhost:8501/'],
-          LogoutURLs: [logoutUrl, 'http://localhost:8501/'],
+          CallbackURLs: [callbackUrl, 'http://localhost:3000/api/auth/callback'],
+          LogoutURLs: [logoutUrl, 'http://localhost:3000/'],
           AllowedOAuthFlows: ['code'],
           AllowedOAuthScopes: ['email', 'openid', 'profile'],
           AllowedOAuthFlowsUserPoolClient: true,
